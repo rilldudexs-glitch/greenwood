@@ -1,0 +1,1 @@
+Bundled DejaVuSans.ttf is a real font resource.
