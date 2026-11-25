@@ -1,0 +1,1 @@
+Godot canvas materials: assign assets/shaders/*.gdshader to ShaderMaterial resources in Inspector.
