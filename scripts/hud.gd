@@ -508,8 +508,15 @@ func _layout_dialog(sz: Vector2) -> void:
     var bw: float = minf(sz.x - 40.0, 700.0)
     _dlg.custom_minimum_size.x = bw
     _dlg_text.custom_minimum_size.x = bw - 80.0
-    _dlg.position.y = -sz.y * 0.12
-    var top: float = _dlg.get_global_rect().position.y
+    _place_dialog(sz)
+
+
+func _place_dialog(sz: Vector2) -> void:
+    # kotak dialog menempel di bawah layar (naik 12%), tinggi mengikuti isi teks
+    var bw: float = minf(sz.x - 40.0, 700.0)
+    var h: float = _dlg.get_combined_minimum_size().y
+    _dlg.position = Vector2((sz.x - bw) / 2.0, sz.y - h - sz.y * 0.12)
+    var top: float = _dlg.position.y
     var ph: float = minf(minf(sz.y * 0.42, 210.0), top - 10.0)
     if ph < 70.0:
         _port_l.visible = false
@@ -1006,6 +1013,8 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
+    if _dlg != null and _dlg.visible and _port_l != null:
+        _place_dialog(get_viewport_rect().size)
     if fog != null and player != null and is_instance_valid(player):
         fog.tick(delta, player.global_position, world.has_meta("in_dungeon"))
     banner_t = maxf(banner_t - delta, 0.0)
