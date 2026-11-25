@@ -5,6 +5,7 @@ extends Node
 # Keluaran harus berisi "SMOKE_OK" dan tidak boleh ada "SCRIPT ERROR".
 
 const Secrets = preload("res://scripts/secrets.gd")
+var _spawned: Array = []
 var main
 var frames := 0
 var step := 0
@@ -118,26 +119,24 @@ func _process(_d: float) -> void:
                     for b in [1, 2, 3, 4]:
                         var e = main.spawn_mob(String(kinds[i]), b, pl.global_position + Vector2(40 + i * 12, 30 + b * 10))
                         e.hp = 3
+                        _spawned.append(e)
                 step = 1
                 wait = 90
             elif frames > 600:
                 check(false, "bake tidak selesai")
                 step = 9
         1:
-            for e in get_tree().get_nodes_in_group("enemies"):
-                if not e.is_in_group("boss"):
+            for e in _spawned:
+                if is_instance_valid(e) and not e.is_in_group("boss"):
                     e.take_damage(999999, Vector2.RIGHT)
             step = 2
             wait = 10
         2:
             var left := 0
-            for e in get_tree().get_nodes_in_group("hostile"):
-                if not e.is_in_group("boss"):
+            for e in _spawned:
+                if is_instance_valid(e) and not e.is_in_group("boss") and not e.is_queued_for_deletion():
                     left += 1
-            if left > 0:
-                for e in get_tree().get_nodes_in_group("hostile"):
-                    if not e.is_in_group("boss"):
-                        print("  sisa: ", e.kind, " hp=", e.hp, " groups=", e.get_groups())
+                    print("  sisa: ", e.kind, " hp=", e.hp, " groups=", e.get_groups())
             check(left == 0, "semua musuh harus mati, sisa %d" % left)
             # quest rahasia: Marni tahap 1 -> 2 -> peti
             Secrets.accept("marni")
