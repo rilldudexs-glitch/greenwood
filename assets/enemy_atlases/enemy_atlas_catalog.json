@@ -1,0 +1,210 @@
+{
+  "format": "Greenwood enemy atlas assignment catalog",
+  "version": 2,
+  "atlas_size": [
+    1536,
+    1024
+  ],
+  "atlases": {
+    "crystal_cavern": "res://assets/enemy_atlases/crystal_cavern.png",
+    "sakura_valley_a": "res://assets/enemy_atlases/sakura_valley_a.png",
+    "luminus_reef": "res://assets/enemy_atlases/luminus_reef.png",
+    "undefined_land": "res://assets/enemy_atlases/undefined_land.png",
+    "abyssal_land": "res://assets/enemy_atlases/abyssal_land.png",
+    "sakura_valley_b": "res://assets/enemy_atlases/sakura_valley_b.png",
+    "extra_atlas_07": "res://assets/enemy_atlases/extra_atlas_07.png",
+    "forgotten_kingdom": "res://assets/enemy_atlases/forgotten_kingdom.png",
+    "mushroom_kingdom": "res://assets/enemy_atlases/mushroom_kingdom.png",
+    "shadow_biome": "res://assets/enemy_atlases/shadow_biome.png",
+    "enchanted_forest": "res://assets/enemy_atlases/enchanted_forest.png",
+    "ethergrooves": "res://assets/enemy_atlases/ethergrooves.png",
+    "verdant_height": "res://assets/enemy_atlases/verdant_height.png"
+  },
+  "enemies": {
+    "umbral_slime": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "gloomfang_wolf": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "shade_stalker": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "dusk_bat": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "night_kobold": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "eclipse_spider": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "hollow_wisp": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "gravebound_ogre": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "ashen_fiend": {
+      "atlas": "res://assets/enemy_atlases/shadow_biome.png"
+    },
+    "rift_serpent": {
+      "atlas": "res://assets/enemy_atlases/undefined_land.png"
+    },
+    "null_crawler": {
+      "atlas": "res://assets/enemy_atlases/undefined_land.png"
+    },
+    "glitch_golem": {
+      "atlas": "res://assets/enemy_atlases/undefined_land.png"
+    },
+    "abyss_eel": {
+      "atlas": "res://assets/enemy_atlases/abyssal_land.png"
+    },
+    "deep_maw": {
+      "atlas": "res://assets/enemy_atlases/abyssal_land.png"
+    },
+    "trench_horror": {
+      "atlas": "res://assets/enemy_atlases/abyssal_land.png"
+    },
+    "blackfin_stalker": {
+      "atlas": "res://assets/enemy_atlases/abyssal_land.png"
+    },
+    "void_jelly": {
+      "atlas": "res://assets/enemy_atlases/abyssal_land.png"
+    },
+    "drowned_mummy": {
+      "atlas": "res://assets/enemy_atlases/abyssal_land.png"
+    },
+    "thorn_sprite": {
+      "atlas": "res://assets/enemy_atlases/enchanted_forest.png"
+    },
+    "mossback_bear": {
+      "atlas": "res://assets/enemy_atlases/enchanted_forest.png"
+    },
+    "elder_treantling": {
+      "atlas": "res://assets/enemy_atlases/enchanted_forest.png"
+    },
+    "briar_goblin": {
+      "atlas": "res://assets/enemy_atlases/enchanted_forest.png"
+    },
+    "bloom_wisp": {
+      "atlas": "res://assets/enemy_atlases/enchanted_forest.png"
+    },
+    "rootbound_ogre": {
+      "atlas": "res://assets/enemy_atlases/enchanted_forest.png"
+    },
+    "petal_fox": {
+      "atlas": "res://assets/enemy_atlases/sakura_valley_a.png"
+    },
+    "sakura_moth": {
+      "atlas": "res://assets/enemy_atlases/sakura_valley_a.png"
+    },
+    "crimson_koi": {
+      "atlas": "res://assets/enemy_atlases/sakura_valley_a.png"
+    },
+    "blossom_spider": {
+      "atlas": "res://assets/enemy_atlases/sakura_valley_b.png"
+    },
+    "pink_warden": {
+      "atlas": "res://assets/enemy_atlases/sakura_valley_b.png"
+    },
+    "fallen_ronin": {
+      "atlas": "res://assets/enemy_atlases/sakura_valley_b.png"
+    },
+    "sporeling": {
+      "atlas": "res://assets/enemy_atlases/mushroom_kingdom.png"
+    },
+    "mushroom_brute": {
+      "atlas": "res://assets/enemy_atlases/mushroom_kingdom.png"
+    },
+    "myco_shaman": {
+      "atlas": "res://assets/enemy_atlases/mushroom_kingdom.png"
+    },
+    "toxic_toad": {
+      "atlas": "res://assets/enemy_atlases/mushroom_kingdom.png"
+    },
+    "cap_guardian": {
+      "atlas": "res://assets/enemy_atlases/mushroom_kingdom.png"
+    },
+    "fungal_bat": {
+      "atlas": "res://assets/enemy_atlases/mushroom_kingdom.png"
+    },
+    "ether_drake": {
+      "atlas": "res://assets/enemy_atlases/ethergrooves.png"
+    },
+    "cloud_wisp": {
+      "atlas": "res://assets/enemy_atlases/ethergrooves.png"
+    },
+    "aether_manta": {
+      "atlas": "res://assets/enemy_atlases/ethergrooves.png"
+    },
+    "prism_golem": {
+      "atlas": "res://assets/enemy_atlases/ethergrooves.png"
+    },
+    "sky_kobold": {
+      "atlas": "res://assets/enemy_atlases/ethergrooves.png"
+    },
+    "starved_harpy": {
+      "atlas": "res://assets/enemy_atlases/ethergrooves.png"
+    },
+    "ruins_sentinel": {
+      "atlas": "res://assets/enemy_atlases/forgotten_kingdom.png"
+    },
+    "forgotten_knight": {
+      "atlas": "res://assets/enemy_atlases/forgotten_kingdom.png"
+    },
+    "dust_revenant": {
+      "atlas": "res://assets/enemy_atlases/forgotten_kingdom.png"
+    },
+    "relic_scorpion": {
+      "atlas": "res://assets/enemy_atlases/forgotten_kingdom.png"
+    },
+    "lost_archer": {
+      "atlas": "res://assets/enemy_atlases/forgotten_kingdom.png"
+    },
+    "ancient_mummy": {
+      "atlas": "res://assets/enemy_atlases/forgotten_kingdom.png"
+    },
+    "lumin_ray": {
+      "atlas": "res://assets/enemy_atlases/luminus_reef.png"
+    },
+    "reef_guardian": {
+      "atlas": "res://assets/enemy_atlases/luminus_reef.png"
+    },
+    "pearl_wisp": {
+      "atlas": "res://assets/enemy_atlases/luminus_reef.png"
+    },
+    "coral_stalker": {
+      "atlas": "res://assets/enemy_atlases/luminus_reef.png"
+    },
+    "tide_serpent": {
+      "atlas": "res://assets/enemy_atlases/luminus_reef.png"
+    },
+    "glow_jelly": {
+      "atlas": "res://assets/enemy_atlases/luminus_reef.png"
+    },
+    "verdan_stag": {
+      "atlas": "res://assets/enemy_atlases/verdant_height.png"
+    },
+    "canopy_hunter": {
+      "atlas": "res://assets/enemy_atlases/verdant_height.png"
+    },
+    "elder_boar": {
+      "atlas": "res://assets/enemy_atlases/verdant_height.png"
+    },
+    "vine_strangler": {
+      "atlas": "res://assets/enemy_atlases/verdant_height.png"
+    },
+    "pollen_sprite": {
+      "atlas": "res://assets/enemy_atlases/verdant_height.png"
+    },
+    "grove_colossus": {
+      "atlas": "res://assets/enemy_atlases/verdant_height.png"
+    }
+  },
+  "notes": [
+    "All 13 source atlas PNGs are preserved without modification.",
+    "60 enemy IDs are assigned to their biome atlas sheet.",
+    "Per-enemy source rectangles are intentionally not guessed: the sheets use different panel layouts and need verified regions before runtime animation hookup."
+  ]
+}
