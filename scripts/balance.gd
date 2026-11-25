@@ -88,12 +88,12 @@ const ZONE_RESPAWN := 45.0                 # detik; monster zona hidup lagi jauh
 const ZONE_ELITE := ["ogre", "red_ogre", "golem", "bear"]
 const ZONES := [
     # --- Hutan (Lv 1-100): dari tepi desa makin jauh ke barat makin tinggi
-    {"name": "Padang Slime", "biome": 1, "off": Vector2i(-24, 9), "lv": [1, 6], "mobs": {"slime": 9, "bee": 5}},
-    {"name": "Hutan Goblin Muda", "biome": 1, "off": Vector2i(5, -26), "lv": [7, 14], "mobs": {"goblin": 9, "slime": 3, "spider": 3}},
-    {"name": "Lereng Serigala", "biome": 1, "off": Vector2i(24, 17), "lv": [15, 24], "mobs": {"wolf": 8, "kobold": 5, "bee": 2}},
-    {"name": "Rawa Laba-laba", "biome": 1, "off": Vector2i(-30, -18), "lv": [25, 36], "mobs": {"spider": 8, "goblin": 4, "kobold": 3}},
-    {"name": "Gua Kelelawar", "biome": 1, "off": Vector2i(-44, 22), "lv": [37, 52], "mobs": {"bat": 7, "wolf": 4, "goblin": 4}},
-    {"name": "Hutan Beruang", "biome": 1, "off": Vector2i(-54, -24), "lv": [53, 70], "mobs": {"wolf": 5, "spider": 4, "bear": 2, "ogre": 1}},
+    {"name": "Padang Slime", "biome": 1, "off": Vector2i(-24, 9), "lv": [1, 5], "mobs": {"slime": 9, "bee": 5}},
+    {"name": "Hutan Goblin Muda", "biome": 1, "off": Vector2i(5, -26), "lv": [6, 11], "mobs": {"goblin": 9, "slime": 3, "spider": 3}},
+    {"name": "Lereng Serigala", "biome": 1, "off": Vector2i(34, 22), "lv": [12, 18], "mobs": {"wolf": 8, "kobold": 5, "bee": 2}},
+    {"name": "Rawa Laba-laba", "biome": 1, "off": Vector2i(-30, -18), "lv": [19, 30], "mobs": {"spider": 8, "goblin": 4, "kobold": 3}},
+    {"name": "Gua Kelelawar", "biome": 1, "off": Vector2i(-44, 22), "lv": [31, 46], "mobs": {"bat": 7, "wolf": 4, "goblin": 4}},
+    {"name": "Hutan Beruang", "biome": 1, "off": Vector2i(-54, -24), "lv": [47, 66], "mobs": {"wolf": 5, "spider": 4, "bear": 2, "ogre": 1}},
     {"name": "Rimba Ogre", "biome": 1, "off": Vector2i(-64, 22), "lv": [71, 86], "mobs": {"goblin": 5, "bat": 4, "ogre": 3, "bear": 1}},
     {"name": "Gerbang Ent", "biome": 1, "off": Vector2i(-58, -4), "lv": [87, 100], "mobs": {"wolf": 4, "fiend": 4, "ogre": 3, "bear": 2}},
     # --- Gurun (Lv 100-190)
@@ -216,6 +216,10 @@ static func mob_xp(lv: int, base_xp: int) -> int:
 # Level acak monster biasa menurut bioma + bonus elit
 # dist = jarak ke titik awal desa (px). Di hutan, makin jauh dari desa makin tinggi levelnya,
 # supaya pemula aman di sekitar desa dan naik pelan-pelan.
+# [jarak dari desa (px), level dasar]
+const VILLAGE_CURVE := [[0, 1], [700, 1], [1000, 2], [1300, 4], [1700, 8], [2100, 15], [2500, 28], [2900, 45], [3300, 70], [4000, 100]]
+
+
 static func roll_mob_level(biome_idx: int, kind: String, dist: float = -1.0) -> int:
     var r: Array = BIOME_LV[clampi(biome_idx, 0, BIOME_LV.size() - 1)]
     var lo: int = int(r[0])
@@ -224,6 +228,10 @@ static func roll_mob_level(biome_idx: int, kind: String, dist: float = -1.0) -> 
     if biome_idx == 1 and dist >= 0.0:
         # mulai dihitung dari tepi desa (~560 px): sebaran acak di dekat desa tetap rendah
         t = clampf((dist - 560.0) / 2550.0 + randf_range(-0.08, 0.08), 0.0, 1.0)
+        # kurva landai di dekat desa: Lv 1-3 di sekitar desa, baru naik cepat jauh di luar
+        var base: float = interp(VILLAGE_CURVE, dist)
+        var lvv: int = roundi(base * randf_range(0.8, 1.2))
+        return clampi(maxi(lvv, 1) + int(ELITE_BONUS.get(kind, 0)) * (1 if dist > 1800.0 else 0), 1, LV_MAX)
     var lv: int = lo + roundi(float(hi - lo) * t) + int(ELITE_BONUS.get(kind, 0))
     return clampi(lv, 1, LV_MAX)
 
