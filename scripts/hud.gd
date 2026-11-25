@@ -755,9 +755,11 @@ func _build_pause_list() -> void:
     pc.add_child(vb)
     _qlog = Panels.QuestLog.new()
     _qlog.hud = self
+    _qlog.visible = false
     add_child(_qlog)
     _wmap = Panels.WorldMap.new()
     _wmap.hud = self
+    _wmap.visible = false
     add_child(_wmap)
     var rows := [["Tas", "bag"], ["Status", "stats"], ["Tugas", "quests"], ["Peta", "map"], ["Crafting", "craft"], ["Skin", "skin"], ["Simpan", "save"], ["Keluar", "exit"], ["Lanjutkan", "close"]]
     for rw in rows:

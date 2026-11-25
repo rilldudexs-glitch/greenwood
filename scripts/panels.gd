@@ -8,6 +8,9 @@ class QuestLog extends Control:
     var _rt: RichTextLabel
     var _built := false
 
+    func _init() -> void:
+        visible = false
+
     func build() -> void:
         _built = true
         var pc := P._frame(self)
@@ -64,6 +67,9 @@ class WorldMap extends Control:
     var _go: Button
     var _sel := -1
     var _built := false
+
+    func _init() -> void:
+        visible = false
 
     func build() -> void:
         _built = true
