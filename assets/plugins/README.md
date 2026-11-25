@@ -1,0 +1,1 @@
+Plugin folder placeholder; no third-party plugins bundled.
