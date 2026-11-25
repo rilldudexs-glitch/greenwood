@@ -1,0 +1,1 @@
+Level resources/data belong here; sample JSON in res://data/levels.
