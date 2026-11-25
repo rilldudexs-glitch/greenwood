@@ -1,0 +1,1 @@
+Effect assets folder; placeholder for particle scenes and sprite animations.
