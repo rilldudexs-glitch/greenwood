@@ -491,6 +491,8 @@ func _layout() -> void:
 
 
 func _layout_dialog(sz: Vector2) -> void:
+    if _dlg == null or _dim == null or _port_l == null or _port_r == null:
+        return          # _layout() sudah dipanggil dari _build_buttons sebelum dialog dibangun
     var on := _dlg.visible
     if on != _hid:
         _hid = on
