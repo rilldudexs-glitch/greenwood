@@ -1,0 +1,204 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7"
+  GODOT_RELEASE: "stable"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Mencari project.godot di mana pun (root repo, subfolder, atau di dalam file .zip lama).
+      - name: Cari folder proyek
+        run: |
+          set -e
+          # proyek besar diunggah terpecah (proj.zip.001, proj.zip.002, ...): gabungkan dulu jadi satu zip
+          if ls ./proj.zip.0* > /dev/null 2>&1; then
+            cat ./proj.zip.0* > ./proj.zip
+            echo "Menggabung bagian proj.zip: $(ls ./proj.zip.0* | wc -l) bagian"
+          fi
+          P="$(find . -name project.godot -not -path '*/.godot/*' -not -path './x/*' | head -n 1)"
+          if [ -z "$P" ]; then
+            Z="$(ls ./*.zip 2>/dev/null | head -n 1 || true)"
+            if [ -n "$Z" ]; then
+              echo "Tidak ada project.godot di repo, mengekstrak: $Z"
+              mkdir -p x && unzip -q "$Z" -d x
+              P="$(find x -name project.godot | head -n 1)"
+            fi
+          fi
+          if [ -z "$P" ]; then echo "::error::project.godot tidak ditemukan"; exit 1; fi
+          PROJECT_DIR="$(cd "$(dirname "$P")" && pwd)"
+          # tambalan kecil: file di folder patch/ (mis. patch/scripts/npc.gd) menimpa isi proyek, jadi update tidak perlu unggah zip besar lagi
+          if [ -d ./patch ]; then
+            cp -r ./patch/. "$PROJECT_DIR"/
+            echo "Menerapkan tambalan dari patch/"
+          fi
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Folder proyek: $PROJECT_DIR"
+          ls "$PROJECT_DIR"
+
+      - name: Cache Godot dan export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot-bin
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE }}-v1
+
+      - name: Pasang Godot dan export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}"
+          wget -q "$BASE/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64.zip" -O godot.zip
+          wget -q "$BASE/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_export_templates.tpz" -O templates.tpz
+          mkdir -p "$HOME/godot-bin"
+          unzip -q godot.zip -d "$HOME/godot-bin"
+          mv "$HOME/godot-bin/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64" "$HOME/godot-bin/godot"
+          chmod +x "$HOME/godot-bin/godot"
+          unzip -q templates.tpz
+          TDIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}"
+          mkdir -p "$TDIR"
+          mv templates/* "$TDIR"/
+
+      - name: Tambahkan Godot ke PATH
+        run: echo "$HOME/godot-bin" >> "$GITHUB_PATH"
+
+      - name: Import proyek dan jalankan smoke test
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          godot --headless --import || true
+          if [ -f tests/smoke.tscn ]; then
+            timeout 240 godot --headless res://tests/smoke.tscn 2>&1 | tee "$RUNNER_TEMP/smoke.log" || true
+            if grep -q "SCRIPT ERROR" "$RUNNER_TEMP/smoke.log"; then
+              echo "::error::Ada SCRIPT ERROR saat smoke test"; exit 1
+            fi
+            if ! grep -q "SMOKE_OK" "$RUNNER_TEMP/smoke.log"; then
+              echo "::error::Smoke test gagal (SMOKE_OK tidak muncul)"; exit 1
+            fi
+          else
+            echo "tests/smoke.tscn tidak ada, lewati"
+          fi
+
+      - name: Pasang Android SDK
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Buat keystore debug dan setelan Godot
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android \
+            -keystore "$HOME/debug.keystore" -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          mkdir -p "$HOME/.config/godot"
+          for f in editor_settings-4.tres editor_settings-${GODOT_VERSION}.tres; do
+          cat > "$HOME/.config/godot/$f" <<SETTINGS
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/debug_keystore = "$HOME/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          SETTINGS
+          done
+
+      - name: Buat export_presets.cfg
+        run: |
+          cat > "$PROJECT_DIR/export_presets.cfg" <<'PRESET'
+          [preset.0]
+
+          name="Android"
+          platform="Android"
+          runnable=true
+          advanced_options=false
+          dedicated_server=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter="tests/*, tools/*, docs/*"
+          export_path=""
+          patches=PackedStringArray()
+          encryption_include_filters=""
+          encryption_exclude_filters=""
+          seed=0
+          encrypt_pck=false
+          encrypt_directory=false
+          script_export_mode=2
+
+          [preset.0.options]
+
+          custom_template/debug=""
+          custom_template/release=""
+          gradle_build/use_gradle_build=false
+          architectures/armeabi-v7a=false
+          architectures/arm64-v8a=true
+          architectures/x86=false
+          architectures/x86_64=false
+          version/code=13
+          version/name="2.1"
+          package/unique_name="com.greenwood.rpg2d"
+          package/name="Greenwood RPG 2D"
+          package/signed=true
+          package/app_category=2
+          package/retain_data_on_uninstall=false
+          package/exclude_from_recents=false
+          launcher_icons/main_192x192=""
+          launcher_icons/adaptive_foreground_432x432=""
+          launcher_icons/adaptive_background_432x432=""
+          graphics/opengl_debug=false
+          xr_features/xr_mode=0
+          screen/immersive_mode=true
+          permissions/internet=true
+          permissions/access_network_state=true
+          permissions/access_wifi_state=true
+          screen/support_small=true
+          screen/support_normal=true
+          screen/support_large=true
+          screen/support_xlarge=true
+          user_data_backup/allow=false
+          command_line/extra_args=""
+          apk_expansion/enable=false
+          PRESET
+
+      - name: Export APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        env:
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ github.workspace }}/debug.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: android
+        run: |
+          set -e
+          mkdir -p "$GITHUB_WORKSPACE/build"
+          cp "$HOME/debug.keystore" "$GITHUB_WORKSPACE/debug.keystore"
+          godot --headless --export-release "Android" "$GITHUB_WORKSPACE/build/greenwood.apk" 2>&1 | tee "$RUNNER_TEMP/export.log"
+          if [ ! -s "$GITHUB_WORKSPACE/build/greenwood.apk" ]; then
+            echo "::error::APK tidak terbentuk"; exit 1
+          fi
+          ls -la "$GITHUB_WORKSPACE/build"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: greenwood-apk
+          path: build/greenwood.apk
+          if-no-files-found: error
