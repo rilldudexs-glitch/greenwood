@@ -11,7 +11,12 @@ const SFX_DIR := "res://assets/audio/sfx/%s.wav"
 const MUSIC_DIR := "res://assets/audio/music/%s.%s"
 const MUSIC_EXT := ["mp3", "ogg", "wav"]   # dicari berurutan: file mp3/ogg menang atas wav lama
 # Penyetara volume per lagu (dB) supaya semua lagu terdengar sama keras. Lagu baru tanpa entri = 0.
-const TRACK_GAIN := {"forest": -3.7, "desert": -1.7, "snow": -1.0, "volcano": -3.3}
+const TRACK_GAIN := {"forest": -3.7, "desert": -1.7, "snow": -1.0, "volcano": -3.3,
+	"village": 2.5, "shadow": 2.5, "undefined": 2.5, "abyss": 2.5, "enchanted": 2.5, "sakura": 2.5, "mushroom": 2.5,
+	"ether": 2.5, "forgotten": 2.5, "reef": 2.5, "verdan": 2.5, "crystal": 2.5}
+# Lagu khusus per biome (dibuat dengan sintesis kode, loop sudah mulus): tanpa warna biome & tanpa tumpang-tindih panjang
+const OWN_TRACKS := ["village", "shadow", "undefined", "abyss", "enchanted", "sakura", "mushroom", "ether", "forgotten", "reef", "verdan", "crystal"]
+const OWN_OVERLAP := 0.6
 const FIGHT_TRACKS := ["boss", "title"]   # tanpa warna biome, tanpa jeda
 const CROSSFADE := 2.5       # detik, ganti lagu (biome / boss)
 const LOOP_OVERLAP := 4.0    # detik, ujung lagu biome menyatu dengan awalnya
@@ -140,7 +145,7 @@ func _process(_d: float) -> void:
 	var length: float = p.stream.get_length()
 	if length <= 1.0:
 		return
-	var ov: float = minf(FIGHT_OVERLAP if _current in FIGHT_TRACKS else LOOP_OVERLAP, length * 0.3)
+	var ov: float = minf(OWN_OVERLAP if _current in OWN_TRACKS else (FIGHT_OVERLAP if _current in FIGHT_TRACKS else LOOP_OVERLAP), length * 0.3)
 	var remain: float = (length - p.get_playback_position()) / maxf(p.pitch_scale, 0.1)
 	if remain > ov:
 		return
@@ -204,7 +209,7 @@ func sfx(sfx_name: String, pitch: float = 1.0) -> void:
 
 # `biome` (opsional) = indeks biome game; dipakai untuk warna suara. Boss/title: tanpa warna.
 func music(track: String, biome: int = -1) -> void:
-	_set_color(-1 if track in FIGHT_TRACKS else biome)
+	_set_color(-1 if (track in FIGHT_TRACKS or track in OWN_TRACKS) else biome)
 	var cur: AudioStreamPlayer = _mp[_active]
 	if track == _current and (cur.playing or not _rest.is_stopped()):
 		return

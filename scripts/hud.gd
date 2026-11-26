@@ -808,7 +808,7 @@ func _build_pause_list() -> void:
     for rw in rows:
         var b := Button.new()
         b.text = String(rw[0])
-        b.custom_minimum_size = Vector2(0, 40)
+        b.custom_minimum_size = Vector2(0, 36)
         b.add_theme_font_size_override("font_size", 17)
         b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
         var sel: StyleBoxTexture = K.nine("ui_list_sel", 24, 12, 24, 12)

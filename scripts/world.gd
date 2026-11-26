@@ -21,7 +21,7 @@ const STREAM_LOAD := 1                 # bake chunk dalam jarak ini (satuan chun
 const STREAM_KEEP := 2                 # buang chunk yang lebih jauh dari ini
 const IDS := ["village", "forest", "desert", "snow", "volcano", "shadow", "undefined", "abyssal", "enchanted", "sakura", "mushroom", "ethergrooves", "forgotten", "lumins", "verdan", "crystal"]
 const BNAMES := ["Desa Greenwood", "Hutan Greenwood", "Gurun Berdebu", "Puncak Salju", "Gunung Api", "Shadow Reach", "Undefined Land", "Abyssal Land", "Enchanted Forest", "Sakura Valley", "Mushroom Kingdom", "Ethergrooves", "Forgotten Kingdom", "Lumins Reef", "Verdan Height", "Crystal Cavern"]
-const MUSIC := ["forest", "forest", "desert", "snow", "volcano", "forest", "volcano", "desert", "forest", "forest", "forest", "snow", "volcano", "desert", "forest", "snow"]
+const MUSIC := ["village", "forest", "desert", "snow", "volcano", "shadow", "undefined", "abyss", "enchanted", "sakura", "mushroom", "ether", "forgotten", "reef", "verdan", "crystal"]
 const MAP_COL := [Color(0.6,0.42,0.25), Color(0.25,0.55,0.25), Color(0.88,0.74,0.42), Color(0.85,0.92,1.0), Color(0.6,0.2,0.15), Color(0.12,0.10,0.20), Color(0.38,0.32,0.52), Color(0.08,0.16,0.24), Color(0.22,0.48,0.25), Color(0.88,0.48,0.62), Color(0.55,0.32,0.68), Color(0.28,0.55,0.72), Color(0.42,0.36,0.28), Color(0.25,0.78,0.82), Color(0.36,0.62,0.32), Color(0.32,0.30,0.78)]
 const BIOME_MULT := [1.0, 1.0, 1.7, 2.6, 3.8, 4.5, 5.0, 5.5, 4.2, 4.0, 4.8, 6.0, 6.5, 7.0, 7.5, 8.0]
 
