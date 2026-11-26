@@ -1240,20 +1240,44 @@ func _draw_held_gear(o: Dictionary, held: Dictionary, off: Vector2) -> void:
 		r = 16.0
 	elif swinging:
 		r += sin(clampf(_swing, 0.0, 1.0) * PI) * 6.0
-	var hand: Vector2 = off + Vector2(0.0, -5.0 + bob) + Vector2.from_angle(wa) * r
+	# Titik bahu dan genggaman mengikuti arah hadap sprite, bukan offset dari pusat badan.
+	# Tangan bergerak bersama sudut senjata saat ayunan sehingga gagang tetap terlihat digenggam.
+	var shoulder := Vector2(6.0, -14.0)
+	match Art.hero_dir(_face):
+		"up":
+			shoulder = Vector2(6.0, -23.0)
+		"left":
+			shoulder = Vector2(-7.0, -20.0)
+		"right":
+			shoulder = Vector2(7.0, -20.0)
+		_:
+			shoulder = Vector2(6.0, -14.0)
+	var hand: Vector2 = off + shoulder + Vector2.from_angle(wa) * (8.5 + (r - 9.0) * 0.35)
 	var base := Transform2D.IDENTITY
 	var ang: float = wa
 	if cos(wa) < 0.0:      # menghadap kiri: sprite dibalik vertikal supaya tidak terbalik
 		base = Transform2D(0.0, Vector2(1.0, -1.0), 0.0, Vector2.ZERO)
 		ang = -wa
 		hand.y = -hand.y
+		shoulder.y = -shoulder.y
 	draw_set_transform_matrix(base)
+	# Lengan depan dibuat sebagai layer terpisah: bahu -> pergelangan -> gagang.
+	# Warna lengan mengikuti armor yang dipakai; telapak digambar paling akhir di atas gagang.
+	var skin: Dictionary = o.get("skin", {})
+	var sleeve: Color = o.get("chest_c", skin.get("c1", Color(0.32, 0.43, 0.62)))
+	var glove: Color = o.get("gloves_c", Color(0.94, 0.76, 0.63))
+	draw_line(shoulder, hand, sleeve.darkened(0.12), 4.2)
+	draw_line(shoulder, shoulder.lerp(hand, 0.62), sleeve.lightened(0.08), 3.2)
 	var jl: Array = Jobs.look()
 	if not jl.is_empty() and String(held.get("kind", "")) == "sword":
 		draw_set_transform_matrix(base * Transform2D(ang, hand))
 		_draw_job_weapon(String(jl[0]), jl[1])
 	else:
 		Art.draw_held(self, held, hand, ang, _t, base)
+	# Telapak dan jari menutup sedikit bagian pangkal senjata agar terlihat menggenggam.
+	draw_set_transform_matrix(base)
+	draw_circle(hand, 2.35, glove.darkened(0.08))
+	draw_circle(hand + Vector2(0.55, -0.35), 1.05, glove.lightened(0.12))
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
