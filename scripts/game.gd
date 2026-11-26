@@ -12,11 +12,11 @@ const SET_PATH := "user://greenwood_settings.json"
 const STAT_KEYS := ["str", "int", "vit", "dex", "luk"]
 const STAT_NAMES := {"str": "STR", "int": "INT", "vit": "VIT", "dex": "DEX", "luk": "LUK"}
 const STAT_LONG := {
-	"str": "Kekuatan: serangan pedang +2 per poin",
-	"int": "Kecerdasan: sihir +2 & MP maks +10 per poin",
-	"vit": "Vitalitas: HP maks +10 & pertahanan +0.5 per poin",
-	"dex": "Kelincahan: serang lebih cepat, jalan lebih cepat, sedikit kritis",
-	"luk": "Keberuntungan: kritis +1%, drop lebih banyak, peluang gacha",
+	"str": "Kekuatan: serangan pedang +7 per poin",
+	"int": "Kecerdasan: sihir +7 & MP maks +18 per poin",
+	"vit": "Vitalitas: HP maks +18 & pertahanan +0.8 per poin",
+	"dex": "Kelincahan: jalan +2 px/dtk, serangan lebih cepat, sedikit kritis",
+	"luk": "Keberuntungan: kritis +1.25%, drop lebih banyak, peluang gacha",
 }
 const POINTS_PER_LEVEL := 2
 const GACHA_COST := 60
