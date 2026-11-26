@@ -29,7 +29,7 @@ func _physics_process(delta: float) -> void:
     var main = get_tree().current_scene
     var d: Dictionary = Dungeon.DEFS[dungeon_id]
     if Input.is_action_just_pressed("interact"):
-        main.dungeon_enter(dungeon_id)
+        main.dungeon_enter(dungeon_id, global_position)
         return
     if Time.get_ticks_msec() - _hint_ms > 3000:
         _hint_ms = Time.get_ticks_msec()
