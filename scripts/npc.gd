@@ -345,12 +345,12 @@ func interact(pl) -> void:
         "wanderer":
             _talk_wanderer(hud, pl)
         "gatekeeper":
-            if pl.level() < 200:
-                hud.say(npc_name, ["Gerbang World 2 belum bisa dibuka. Kembalilah saat levelmu mencapai 200.", "Di balik gerbang ada Ethergrooves, Forgotten Kingdom, Lumins Reef, dan Verdan Height."])
+            if pl.level() < 500:
+                hud.say(npc_name, ["Gerbang World 2 belum bisa dibuka. Kembalilah saat levelmu mencapai 500.", "Portalnya berada tepat di samping kastil Enchanted Forest. Di baliknya, musuh jauh lebih kuat."])
             elif bool(Game.p.get("world2_unlocked", false)):
-                hud.say(npc_name, ["Gerbang sudah terbuka. Dunia di baliknya menunggumu."])
+                hud.say(npc_name, ["Gerbang sudah terbuka. Portal ada tepat di samping kastil ini. Dekati lingkaran portal lalu tekan E."])
             else:
-                hud.say(npc_name, ["Levelmu cukup. Apa kamu siap menyeberang ke World 2?"], _enter_world2.bind(pl))
+                hud.say(npc_name, ["Levelmu cukup. Aku akan membuka segelnya. Setelah itu, masuk lewat portal di samping kastil."], _enter_world2.bind(pl))
         _:
             if Secrets.is_witness(role):
                 _talk_secret(hud, pl)
@@ -370,15 +370,12 @@ func interact(pl) -> void:
             hud.say(npc_name, l)
 
 
-func _enter_world2(pl) -> void:
+func _enter_world2(_pl) -> void:
     Game.p["world2_unlocked"] = true
     Game.save()
-    var w = get_tree().get_first_node_in_group("world")
-    if w != null:
-        pl.global_position = w.find_open(Vector2i(228, 24))
     var hud = get_tree().get_first_node_in_group("hud")
     if hud:
-        hud.show_banner("WORLD 2 — THE OUTER REALMS", 4.0)
+        hud.show_banner("SEGEL PORTAL WORLD 2 TERBUKA", 4.0)
 
 
 # ------------------------------------------------------------------ quest rahasia
