@@ -8,6 +8,8 @@ const StickScript = preload("res://scripts/touch_stick.gd")
 const K = preload("res://scripts/ui_kit.gd")
 const FogScript = preload("res://scripts/fog.gd")
 const Panels = preload("res://scripts/panels.gd")
+const Panels2 = preload("res://scripts/panels2.gd")
+const Prog = preload("res://scripts/progress.gd")
 
 var world
 var player
@@ -54,6 +56,7 @@ var _hid := false
 var _flash := false
 var _qlog
 var _wmap
+var _cp
 var _disc_t := 0.0
 const REACT := ["Hmm, begitu ya...", "Oh, jadi begitu.", "Aku mengerti.", "Lanjutkan, aku mendengarkan.", "Baik, akan kuingat.", "Itu menarik..."]
 var _block_t := 0.0
@@ -580,7 +583,7 @@ func stick_value() -> Vector2:
 
 
 func busy() -> bool:
-    return _dlg.visible or menu.is_open or pause_list.visible or _qlog.visible or _wmap.visible or _block_t > 0.0
+    return _dlg.visible or menu.is_open or pause_list.visible or _qlog.visible or _wmap.visible or _cp.visible or _block_t > 0.0
 
 
 # ------------------------------------------------------------------ pesan
@@ -627,7 +630,7 @@ func gacha_pull(n: int) -> void:
 
 func _update_pause() -> void:
     # co-op: dunia tidak boleh berhenti (host menjalankan semua monster untuk semua pemain)
-    get_tree().paused = (_dlg.visible or menu.is_open or pause_list.visible or _qlog.visible or _wmap.visible) and not Net.active
+    get_tree().paused = (_dlg.visible or menu.is_open or pause_list.visible or _qlog.visible or _wmap.visible or _cp.visible) and not Net.active
 
 
 func menu_closed() -> void:
@@ -768,7 +771,11 @@ func _build_pause_list() -> void:
     _wmap.hud = self
     _wmap.visible = false
     add_child(_wmap)
-    var rows := [["Tas", "bag"], ["Status", "stats"], ["Tugas", "quests"], ["Peta", "map"], ["Crafting", "craft"], ["Skin", "skin"], ["Simpan", "save"], ["Keluar", "exit"], ["Lanjutkan", "close"]]
+    _cp = Panels2.CharPanel.new()
+    _cp.hud = self
+    _cp.visible = false
+    add_child(_cp)
+    var rows := [["Tas", "bag"], ["Status", "stats"], ["Tugas", "quests"], ["Peta", "map"], ["Karakter", "char"], ["Crafting", "craft"], ["Skin", "skin"], ["Simpan", "save"], ["Keluar", "exit"], ["Lanjutkan", "close"]]
     for rw in rows:
         var b := Button.new()
         b.text = String(rw[0])
@@ -815,6 +822,9 @@ func _pause_pick(id: String) -> void:
             _update_pause()
         "map":
             _wmap.open()
+            _update_pause()
+        "char":
+            _cp.open()
             _update_pause()
         _:
             open_menu(id)
@@ -870,7 +880,9 @@ func _with_replies(lines: Array) -> Array:
 
 
 func player_name() -> String:
-    return String(Game.p.get("name", "Petualang"))
+    var t: String = Prog.title_text()
+    var n: String = String(Game.p.get("name", "Petualang"))
+    return n if t == "" else "%s, %s" % [n, t]
 
 
 func _show_line() -> void:
@@ -970,10 +982,11 @@ func _discover_castles() -> void:
 
 
 func _input(event: InputEvent) -> void:
-    if _qlog.visible or _wmap.visible:
+    if _qlog.visible or _wmap.visible or _cp.visible:
         if event.is_action_pressed("pause"):
             _qlog.visible = false
             _wmap.visible = false
+            _cp.visible = false
             panel_closed()
             get_viewport().set_input_as_handled()
         return
@@ -1024,6 +1037,9 @@ func _process(delta: float) -> void:
     if _disc_t >= 0.7:
         _disc_t = 0.0
         _discover_castles()
+        for a in Prog.check():
+            show_banner("Achievement: %s" % String(a["name"]), 3.0)
+            toast("Gelar baru: %s (+%d koin)" % [String(a.get("title", "")), int(a.get("coins", 0))])
     for t in toasts:
         t["life"] = float(t["life"]) - delta
     toasts = toasts.filter(func(t): return float(t["life"]) > 0.0)

@@ -6,6 +6,7 @@ const Art = preload("res://scripts/art.gd")
 const Projectile = preload("res://scripts/projectile.gd")
 const Bal = preload("res://scripts/balance.gd")
 const Jobs = preload("res://scripts/jobs.gd")
+const Prog = preload("res://scripts/progress.gd")
 const PetScript = preload("res://scripts/pet.gd")
 
 var hp := 100
@@ -911,7 +912,7 @@ func dodge_ratio() -> float:
 func skill_cd_max() -> float:
 	var sk: Dictionary = Jobs.skill()
 	if not sk.is_empty():
-		return maxf(float(sk["cd"]) - stat("dex") * 0.05, 3.5)
+		return maxf(float(sk["cd"]) - stat("dex") * 0.05, 3.5) * Prog.skill_cd()
 	return maxf(8.0 - stat("dex") * 0.05, 4.5)
 
 
@@ -981,12 +982,13 @@ func _skill() -> void:
 
 # Skill job (data di jobs.gd): area (sekali / beberapa denyut), dash (menebas lurus), blink (loncat ke belakang musuh)
 func _skill_src_dmg(sk: Dictionary) -> int:
+	var base: int = melee_damage()
 	match String(sk.get("src", "melee")):
 		"magic":
-			return magic_damage()
+			base = magic_damage()
 		"best":
-			return maxi(melee_damage(), magic_damage())
-	return melee_damage()
+			base = maxi(melee_damage(), magic_damage())
+	return int(float(base) * Prog.skill_dmg())
 
 
 func _skill_status(e, sk: Dictionary, dmg: int) -> void:

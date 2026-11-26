@@ -4,6 +4,7 @@ extends RefCounted
 
 const Secrets = preload("res://scripts/secrets.gd")
 const Plot = preload("res://scripts/plot.gd")
+const Prog = preload("res://scripts/progress.gd")
 
 const BASE := ["knight", "mage", "archer", "swordsman", "priest", "shade", "tamer", "alchemist"]
 const ADVANCED := ["root_guard", "seal_weaver", "mist_shade", "wild_caller", "seed_brewer"]
@@ -108,7 +109,7 @@ static func name_of(id: String) -> String:
 
 static func mul(k: String) -> float:
     var j := cur()
-    var e: float = Plot.end_mul(k)
+    var e: float = Plot.end_mul(k) * Prog.st_mul(k)
     if j == "":
         return e
     return float(DATA[j].get("mul", {}).get(k, 1.0)) * e
@@ -116,9 +117,10 @@ static func mul(k: String) -> float:
 
 static func add(k: String) -> float:
     var j := cur()
+    var t: float = Prog.st_add(k)
     if j == "":
-        return 0.0
-    return float(DATA[j].get("add", {}).get(k, 0.0))
+        return t
+    return float(DATA[j].get("add", {}).get(k, 0.0)) + t
 
 
 # Skill job aktif; kosong = skill bawaan (tebasan memutar)

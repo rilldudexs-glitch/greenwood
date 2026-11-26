@@ -79,7 +79,7 @@ func default_player() -> Dictionary:
 		"intro": false, "world2_unlocked": false, "world": 0, "clock": 240.0,
 		"secrets": {}, "kills": {},
 		"story": {"ch": 0, "on": false, "n": false, "k": {}, "v": {}}, "bosskills": {}, "dungeons": {}, "lore": {}, "bseen": {},
-		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {},
+		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "",
 	}
 
 
@@ -310,7 +310,7 @@ func load_save() -> bool:
 	var sp: Dictionary = data["p"]
 	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls"]:
 		d[k] = int(sp.get(k, d[k]))
-	for k in ["name", "gender", "skin", "sword", "staff", "job"]:
+	for k in ["name", "gender", "skin", "sword", "staff", "job", "title"]:
 		d[k] = str(sp.get(k, d[k]))
 	d["intro"] = bool(sp.get("intro", false))
 	d["world2_unlocked"] = bool(sp.get("world2_unlocked", false))
@@ -352,7 +352,7 @@ func load_save() -> bool:
 				d["secrets"][str(k)] = v
 			else:
 				d["secrets"][str(k)] = int(v)
-	for dk in ["plot", "sq", "fast"]:
+	for dk in ["plot", "sq", "fast", "st", "ach"]:
 		var dv = sp.get(dk, {})
 		if typeof(dv) == TYPE_DICTIONARY:
 			d[dk] = _deep_ints(dv)
