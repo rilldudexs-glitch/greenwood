@@ -7,6 +7,7 @@ const Projectile = preload("res://scripts/projectile.gd")
 const Bal = preload("res://scripts/balance.gd")
 const Jobs = preload("res://scripts/jobs.gd")
 const Prog = preload("res://scripts/progress.gd")
+const MountScript = preload("res://scripts/mount.gd")
 const PetScript = preload("res://scripts/pet.gd")
 
 var hp := 100
@@ -69,6 +70,7 @@ var hud
 
 func _ready() -> void:
 	add_to_group("player")
+	add_child(MountScript.new())
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	collision_layer = 2
 	collision_mask = 1
@@ -135,8 +137,19 @@ func defense() -> float:
 	return (stat("vit") * 0.5 + _eq_sum("def")) * Jobs.mul("def")
 
 
+var mounted := false
+
+
+# Tunggangan terbuka di level 15. Menyerang atau terkena hit otomatis turun.
+func toggle_mount() -> String:
+	if level() < 15:
+		return "Tunggangan terbuka di level 15"
+	mounted = not mounted
+	return "Naik kuda: lebih cepat (serang = turun)" if mounted else "Turun dari kuda"
+
+
 func move_speed() -> float:
-	return (100.0 + stat("dex") * 1.5 + _eq_sum("spd")) * Jobs.mul("spd")
+	return (100.0 + stat("dex") * 1.5 + _eq_sum("spd")) * Jobs.mul("spd") * (1.6 if mounted else 1.0)
 
 
 func attack_cooldown() -> float:
@@ -510,6 +523,7 @@ func _handle_actions(delta: float) -> void:
 		if _swing >= 1.0:
 			_swing = -1.0
 	elif Input.is_action_pressed("attack") and _atk_cd <= 0.0 and _gather_t < 0.0 and _fish == "" and not locked:
+		mounted = false
 		_swing = 0.0
 		_swing_hit = false
 		_atk_cd = attack_cooldown()
@@ -906,6 +920,7 @@ func take_damage(amount: int, from: Vector2, _src: String = "") -> void:
 	if _fish != "":
 		_cancel_fish("Pancingan terganggu!")
 	Audio.sfx("hurt")
+	mounted = false
 	Game.vibrate(35 if dmg < max_hp / 4 else 90)
 	shake_camera(0.5)
 	get_tree().current_scene.fx_text(global_position + Vector2(0, -24), ("Tangkis " if blocked else "-") + str(dmg), Color(0.6, 0.8, 1.0) if blocked else Color(1.0, 0.35, 0.35), 15.0)

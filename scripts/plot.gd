@@ -224,7 +224,13 @@ static func _ending_pick(i: int, hud) -> void:
 
 
 # Pengali pasif dari ending (dipakai Jobs.mul)
+# Ending yang pernah dicapai (tetap tersimpan setelah New Game+ mereset cerita)
+static func ending_kept() -> String:
+    var e := ending()
+    return e if e != "" else String(Game.p.get("ng_end", ""))
+
+
 static func end_mul(k: String) -> float:
-    if ending() == "feed" and (k == "hp" or k == "def"):
+    if ending_kept() == "feed" and (k == "hp" or k == "def"):
         return 1.15
     return 1.0

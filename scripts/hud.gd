@@ -804,7 +804,7 @@ func _build_pause_list() -> void:
     _cp.hud = self
     _cp.visible = false
     add_child(_cp)
-    var rows := [["Tas", "bag"], ["Status", "stats"], ["Tugas", "quests"], ["Peta", "map"], ["Karakter", "char"], ["Crafting", "craft"], ["Skin", "skin"], ["Simpan", "save"], ["Keluar", "exit"], ["Lanjutkan", "close"]]
+    var rows := [["Tas", "bag"], ["Status", "stats"], ["Tugas", "quests"], ["Peta", "map"], ["Karakter", "char"], ["Tunggang", "mount"], ["Crafting", "craft"], ["Skin", "skin"], ["Simpan", "save"], ["Keluar", "exit"], ["Lanjutkan", "close"]]
     for rw in rows:
         var b := Button.new()
         b.text = String(rw[0])
@@ -855,6 +855,9 @@ func _pause_pick(id: String) -> void:
         "char":
             _cp.open()
             _update_pause()
+        "mount":
+            toast(player.toggle_mount())
+            close_pause_list()
         _:
             open_menu(id)
 

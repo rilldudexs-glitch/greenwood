@@ -79,7 +79,7 @@ func default_player() -> Dictionary:
 		"intro": false, "world2_unlocked": false, "world": 0, "clock": 240.0,
 		"secrets": {}, "kills": {},
 		"story": {"ch": 0, "on": false, "n": false, "k": {}, "v": {}}, "bosskills": {}, "dungeons": {}, "lore": {}, "bseen": {},
-		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0, "rush": 0, "rush_clear": 0, "ench": {}, "bst": {},
+		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0, "rush": 0, "rush_clear": 0, "ench": {}, "bst": {}, "house": 0, "stash": {}, "ng": 0, "ng_end": "",
 	}
 
 
@@ -344,9 +344,9 @@ func load_save() -> bool:
 	data = _migrate(data)
 	var d := default_player()
 	var sp: Dictionary = data["p"]
-	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls", "tower", "rush", "rush_clear"]:
+	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls", "tower", "rush", "rush_clear", "house", "ng"]:
 		d[k] = int(sp.get(k, d[k]))
-	for k in ["name", "gender", "skin", "sword", "staff", "job", "title"]:
+	for k in ["name", "gender", "skin", "sword", "staff", "job", "title", "ng_end"]:
 		d[k] = str(sp.get(k, d[k]))
 	d["intro"] = bool(sp.get("intro", false))
 	d["world2_unlocked"] = bool(sp.get("world2_unlocked", false))
@@ -388,7 +388,7 @@ func load_save() -> bool:
 				d["secrets"][str(k)] = v
 			else:
 				d["secrets"][str(k)] = int(v)
-	for dk in ["plot", "sq", "fast", "st", "ach", "ench", "bst"]:
+	for dk in ["plot", "sq", "fast", "st", "ach", "ench", "bst", "stash"]:
 		var dv = sp.get(dk, {})
 		if typeof(dv) == TYPE_DICTIONARY:
 			d[dk] = _deep_ints(dv)

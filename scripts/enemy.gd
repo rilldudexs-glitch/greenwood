@@ -354,6 +354,12 @@ func _ready() -> void:
 		radius *= 1.5
 		bar_y *= 1.45
 		aggro += 60.0
+	var ngp: int = int(Game.p.get("ng", 0))             # New Game+: musuh makin kuat tiap putaran
+	if ngp > 0 and not passive:
+		max_hp = int(float(max_hp) * (1.0 + 0.6 * float(ngp)))
+		hp = max_hp
+		dmg = int(float(dmg) * (1.0 + 0.35 * float(ngp)))
+		xp_reward = int(float(xp_reward) * (1.0 + 0.25 * float(ngp)))
 	if not passive and not puppet:
 		add_to_group("hostile")
 	spawn_pos = global_position

@@ -39,10 +39,10 @@ class CharPanel extends Control:
         var tabs := HBoxContainer.new()
         tabs.add_theme_constant_override("separation", 8)
         vb.add_child(tabs)
-        for i in 5:
+        for i in 6:
             var b := Button.new()
             b.add_theme_font_size_override("font_size", 12)
-            b.text = ["Skill", "Gelar", "Bestiary", "Tempa", "Data"][i]
+            b.text = ["Skill", "Gelar", "Bestiary", "Tempa", "Rumah", "Data"][i]
             b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             b.custom_minimum_size = Vector2(0, 44)
             b.pressed.connect(_set_tab.bind(i))
@@ -102,6 +102,8 @@ class CharPanel extends Control:
                 _bestiary()
             3:
                 _forge()
+            4:
+                _house()
             _:
                 _data()
 
@@ -278,6 +280,14 @@ class CharPanel extends Control:
 
     func _data() -> void:
         _head.text = "Data & Backup"
+        if Prog.ng() > 0 or Prog.can_ng():
+            var nb := Button.new()
+            nb.text = ("Mulai Putaran Baru (NG+ %d)" % (Prog.ng() + 1)) if not _ngc else "YAKIN? Cerita direset, musuh lebih kuat. Ketuk lagi"
+            nb.custom_minimum_size = Vector2(0, 48)
+            nb.disabled = not Prog.can_ng()
+            nb.pressed.connect(_new_plus)
+            _list.add_child(nb)
+            _list.add_child(_label("NG+ %d aktif. Syarat: tamatkan cerita (ending). Level, gear, job, dan achievement tetap." % Prog.ng(), 12, Color(0.75, 0.8, 0.9)))
         _list.add_child(_label("Salin save ke clipboard, lalu tempel ke catatan/chat sebagai cadangan. Di HP baru, salin teks itu lagi lalu pilih Pulihkan.", 13, Color(0.75, 0.8, 0.9)))
         var b1 := Button.new()
         b1.text = "Salin save ke clipboard"
@@ -316,3 +326,109 @@ class CharPanel extends Control:
         else:
             _msg = "Clipboard tidak berisi save yang valid."
             _refresh()
+
+    var _ngc := false
+
+    func _new_plus() -> void:
+        if not _ngc:
+            _ngc = true
+            _refresh()
+            return
+        _ngc = false
+        Prog.start_ng()
+        Game.save()
+        _msg = "Putaran baru dimulai!"
+        hud.get_tree().reload_current_scene()
+
+    # ---------------------------------------------------------------- rumah
+    func _at_home() -> bool:
+        if hud.player == null or not is_instance_valid(hud.player) or hud.world == null:
+            return false
+        return hud.player.global_position.distance_to(hud.world.spawn_point()) < 800.0
+
+    func _house() -> void:
+        _head.text = "Rumah Pemain  -  Lv %d/%d" % [Prog.house_lv(), Prog.HOUSE_MAX]
+        if not _at_home():
+            _list.add_child(_label("Pulanglah ke Desa Greenwood untuk memakai rumah (peti, istirahat, trofi).", 14, Color(1, 0.8, 0.6)))
+            _trophies()
+            return
+        _list.add_child(_label("Bonus rumah: HP +2%% dan regen MP +6%% per level. Koin: %d" % int(Game.p.get("coins", 0)), 12, Color(0.75, 0.8, 0.9)))
+        if _msg != "":
+            _list.add_child(_label(_msg, 13, Color(1, 0.9, 0.5)))
+        var rb := Button.new()
+        rb.text = "Istirahat (pulihkan HP & MP, gratis)"
+        rb.custom_minimum_size = Vector2(0, 44)
+        rb.pressed.connect(_rest)
+        _list.add_child(rb)
+        var ub := Button.new()
+        ub.text = "Tingkatkan rumah  (%d koin)" % Prog.house_cost() if Prog.house_lv() < Prog.HOUSE_MAX else "Rumah sudah maksimum"
+        ub.custom_minimum_size = Vector2(0, 44)
+        ub.disabled = Prog.house_lv() >= Prog.HOUSE_MAX
+        ub.pressed.connect(_upgrade)
+        _list.add_child(ub)
+        _list.add_child(_label("-- Tas (ketuk untuk simpan ke peti) --", 13, Color(0.8, 0.9, 1.0)))
+        var inv: Dictionary = Game.p["inv"]
+        var ids: Array = inv.keys()
+        ids.sort()
+        for id in ids:
+            if Prog.is_worn(String(id)):
+                continue
+            var b := Button.new()
+            b.text = "%s x%d  >>" % [Items.item_name(String(id)), int(inv[id])]
+            b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+            b.custom_minimum_size = Vector2(0, 36)
+            b.pressed.connect(_move.bind(String(id), 1))
+            _list.add_child(b)
+        _list.add_child(_label("-- Peti (%d/60, ketuk untuk ambil) --" % Prog.stash().size(), 13, Color(0.8, 0.9, 1.0)))
+        var sids: Array = Prog.stash().keys()
+        sids.sort()
+        for id in sids:
+            var b2 := Button.new()
+            b2.text = "<<  %s x%d" % [Items.item_name(String(id)), int(Prog.stash()[id])]
+            b2.alignment = HORIZONTAL_ALIGNMENT_LEFT
+            b2.custom_minimum_size = Vector2(0, 36)
+            b2.pressed.connect(_move.bind(String(id), -1))
+            _list.add_child(b2)
+        _trophies()
+
+    func _trophies() -> void:
+        var bk = Game.p.get("bosskills", {})
+        var nb: int = 0
+        if typeof(bk) == TYPE_DICTIONARY:
+            for k in bk.keys():
+                if int(bk[k]) > 0:
+                    nb += 1
+        var na := 0
+        for a in Prog.ACH:
+            if Prog.is_done(String(a["id"])):
+                na += 1
+        _list.add_child(_label("-- Rak Trofi --\nBos dunia dikalahkan: %d jenis\nAchievement: %d/%d\nLantai menara: %d   Boss Rush selesai: %dx\nPutaran: NG+%d" % [nb, na, Prog.ACH.size(), int(Game.p.get("tower", 0)), int(Game.p.get("rush_clear", 0)), Prog.ng()], 13, Color(1, 0.9, 0.6)))
+
+    func _move(id: String, dir: int) -> void:
+        if not Prog.move_stack(id, dir):
+            _msg = "Tidak bisa dipindah (peti penuh?)"
+        else:
+            _msg = ""
+        _refresh()
+
+    func _rest() -> void:
+        var pl = hud.player
+        pl.recalc()
+        pl.hp = pl.max_hp
+        pl.mp = pl.max_mp
+        Game.save()
+        _msg = "Segar kembali!"
+        Audio.sfx("levelup")
+        _refresh()
+
+    func _upgrade() -> void:
+        var c: int = Prog.house_cost()
+        if int(Game.p.get("coins", 0)) < c:
+            _msg = "Koin tidak cukup."
+        else:
+            Game.p["coins"] = int(Game.p["coins"]) - c
+            Game.p["house"] = Prog.house_lv() + 1
+            _msg = "Rumah ditingkatkan!"
+            if hud.player != null and is_instance_valid(hud.player):
+                hud.player.recalc()
+        _refresh()

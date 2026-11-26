@@ -69,7 +69,7 @@ static func st_mul(k: String) -> float:
         var e: Dictionary = n["mul"]
         if e.has(k):
             m += float(e[k]) * float(rank(String(n["id"])))
-    return m * ench_mul(k)
+    return m * ench_mul(k) * house_mul(k)
 
 
 static func st_add(k: String) -> float:
@@ -315,3 +315,76 @@ static func bestiary_check() -> Array:
             Game.p["gems"] = int(Game.p.get("gems", 0)) + gems
             out.append({"name": "Bestiary %s lengkap" % String(biome_names()[int(b)]), "coins": coins, "gems": gems})
     return out
+
+
+# ------------------------------------------------------------------ rumah pemain
+const HOUSE_MAX := 5
+
+
+static func house_lv() -> int:
+    return int(Game.p.get("house", 0))
+
+
+static func house_cost() -> int:
+    var l: int = house_lv()
+    return 5000 * (l + 1) * (l + 1)
+
+
+static func house_mul(k: String) -> float:
+    var l: float = float(house_lv())
+    if k == "hp":
+        return 1.0 + 0.02 * l
+    if k == "regen":
+        return 1.0 + 0.06 * l
+    return 1.0
+
+
+static func stash() -> Dictionary:
+    var d = Game.p.get("stash", {})
+    if typeof(d) != TYPE_DICTIONARY:
+        d = {}
+    Game.p["stash"] = d
+    return d
+
+
+static func is_worn(id: String) -> bool:
+    var eq = Game.p.get("equip", {})
+    return String(Game.p.get("sword", "")) == id or String(Game.p.get("staff", "")) == id or (typeof(eq) == TYPE_DICTIONARY and eq.values().has(id))
+
+
+# Pindahkan seluruh tumpukan item antara tas dan peti. dir > 0: tas -> peti.
+static func move_stack(id: String, dir: int) -> bool:
+    var inv: Dictionary = Game.p["inv"]
+    var st: Dictionary = stash()
+    if dir > 0:
+        if not inv.has(id) or is_worn(id):
+            return false
+        if not st.has(id) and st.size() >= 60:
+            return false
+        st[id] = int(st.get(id, 0)) + int(inv[id])
+        inv.erase(id)
+    else:
+        if not st.has(id):
+            return false
+        inv[id] = int(inv.get(id, 0)) + int(st[id])
+        st.erase(id)
+    return true
+
+
+# ------------------------------------------------------------------ New Game+
+static func ng() -> int:
+    return int(Game.p.get("ng", 0))
+
+
+static func can_ng() -> bool:
+    return Plot.ending() != ""
+
+
+# Reset cerita (plot, quest warga, saksi), simpan level/gear/job/progres. Musuh +60% HP, +35% damage per putaran.
+static func start_ng() -> void:
+    Game.p["ng_end"] = Plot.ending()
+    Game.p["ng"] = ng() + 1
+    Game.p["plot"] = {}
+    Game.p["sq"] = {}
+    Game.p["secrets"] = {}
+    Game.p["story"] = {"ch": 0, "on": false, "n": false, "k": {}, "v": {}}

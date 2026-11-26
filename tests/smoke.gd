@@ -29,6 +29,7 @@ func _ready() -> void:
 func _test_progress() -> void:
     const Prog = preload("res://scripts/progress.gd")
     const Dg = preload("res://scripts/dungeon.gd")
+    const Plot = preload("res://scripts/plot.gd")
     Game.p["level"] = 60
     check(Prog.free_points() == 15, "poin skill salah")
     check(Prog.up("pow") and Prog.rank("pow") == 1, "naik rank gagal")
@@ -50,6 +51,13 @@ func _test_progress() -> void:
     Game.p["tower_cur"] = 7
     var def: Dictionary = d._tower_def()
     check(int(def["boss"]["hp"]) > 0 and int(def["lo"]) >= 1 and def["gen"] != "", "def menara salah")
+    Game.p["inv"]["log"] = 3
+    check(Prog.move_stack("log", 1) and Prog.stash().has("log") and Prog.move_stack("log", -1) and int(Game.p["inv"]["log"]) == 3, "peti rumah gagal")
+    Game.p["house"] = 2
+    check(Prog.house_mul("hp") > 1.0, "bonus rumah salah")
+    Game.p["plot"] = {"end": "feed"}
+    Prog.start_ng()
+    check(Prog.ng() == 1 and Plot.ending() == "" and Plot.end_mul("hp") > 1.0, "NG+ gagal")
     var rd: Dictionary = d._rush_boss(3)
     check(int(rd["hp"]) > 0 and String(rd["kind"]) != "", "boss rush def salah")
     d.free()

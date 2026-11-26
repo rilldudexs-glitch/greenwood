@@ -141,7 +141,7 @@ static func start_stats(id: String) -> Dictionary:
 
 
 static func legend_ready() -> bool:
-    return Plot.ending() == "replant"
+    return Plot.ending_kept() == "replant"
 
 
 static func can_take(id: String) -> bool:
