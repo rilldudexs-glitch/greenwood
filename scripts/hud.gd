@@ -215,6 +215,13 @@ class Overlay extends Control:
                     var bp: Vector2 = mr.position + b.global_position / ws * mr.size
                     draw_circle(bp, 3.0, Color.BLACK)
                     draw_circle(bp, 2.2, Color(1, 0.55, 0.15))
+                for nn in get_tree().get_nodes_in_group("npcs"):
+                    var qm: String = nn.quest_mark()
+                    if qm == "" or (hud.fog != null and not hud.fog.seen_at(nn.global_position)):
+                        continue
+                    var np: Vector2 = mr.position + nn.global_position / ws * mr.size
+                    draw_circle(np, 2.8, Color.BLACK)
+                    draw_circle(np, 2.0, Color(1, 0.9, 0.25) if qm == "!" else Color(0.4, 1.0, 0.85))
                 var pp: Vector2 = mr.position + pl.global_position / ws * mr.size
                 var tri := PackedVector2Array([pp + Vector2(0, -5.5), pp + Vector2(-4.2, 4), pp + Vector2(4.2, 4)])
                 draw_colored_polygon(tri, Color(0.95, 0.15, 0.2))
@@ -243,6 +250,28 @@ class Overlay extends Control:
                 draw_colored_polygon(tri, Color(cc.r, cc.g, cc.b, pulse))
                 draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), Color(1, 1, 1, 0.8), 1.2)
                 _t("%d" % int(dist / 32.0), ap - dir * 24.0 + Vector2(-20, 4), 10, Color(cc.r, cc.g, cc.b, 1.0), 40.0, HORIZONTAL_ALIGNMENT_CENTER)
+        # --- pelacak quest: panah ke NPC terdekat yang siap menerima laporan ("?")
+        if not hud.world.has_meta("in_dungeon") and not hud.busy():
+            var best = null
+            var bd := 1.0e9
+            for qn in get_tree().get_nodes_in_group("npcs"):
+                if qn.quest_mark() != "?":
+                    continue
+                var qd: float = qn.global_position.distance_to(pl.global_position)
+                if qd < bd:
+                    bd = qd
+                    best = qn
+            if best != null and bd > 200.0:
+                var qctr: Vector2 = sz / 2.0
+                var qhalf: Vector2 = qctr - Vector2(36.0, 36.0)
+                var qdir: Vector2 = (best.global_position - pl.global_position) / bd
+                var qs: float = minf(qhalf.x / maxf(absf(qdir.x), 0.001), qhalf.y / maxf(absf(qdir.y), 0.001))
+                var qa: Vector2 = qctr + qdir * qs
+                var qp: float = 0.65 + 0.35 * sin(float(Time.get_ticks_msec()) / 260.0)
+                var qt := PackedVector2Array([qa + qdir * 14.0, qa + qdir.rotated(2.5) * 11.0, qa + qdir.rotated(-2.5) * 11.0])
+                draw_colored_polygon(qt, Color(0.4, 1.0, 0.85, qp))
+                draw_polyline(PackedVector2Array([qt[0], qt[1], qt[2], qt[0]]), Color(1, 1, 1, 0.8), 1.2)
+                _t("? %d" % int(bd / 32.0), qa - qdir * 24.0 + Vector2(-20, 4), 10, Color(0.4, 1.0, 0.85), 40.0, HORIZONTAL_ALIGNMENT_CENTER)
         # --- bar bos
         if hud.boss_on:
             var bw := minf(sz.x * 0.4, 360.0)

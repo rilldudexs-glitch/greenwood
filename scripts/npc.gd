@@ -236,6 +236,17 @@ func _unveil() -> void:
     queue_redraw()
 
 
+# Tanda quest di atas kepala ("!" tersedia, "?" siap lapor), dipakai minimap & panah pelacak
+func quest_mark() -> String:
+    if role.begins_with("sq_") and player:
+        return Sidequests.marker(role, player)
+    if role == "elder":
+        var q: Dictionary = Game.p["quest"]
+        if q["type"] == "none" or Game.quest_done():
+            return "!"
+    return ""
+
+
 func fade_out() -> void:
     var tw := create_tween()
     tw.tween_property(self, "modulate:a", 0.0, 2.0)

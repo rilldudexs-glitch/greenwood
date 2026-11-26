@@ -782,6 +782,10 @@ func _spawn_cave_gates() -> void:
 		tg.dungeon_id = "menara"
 		tg.position = world.random_pos_in_biome(1, world.spawn_point(), 560.0, rng)
 		entities.add_child(tg)
+		var rg = CaveGateScript.new()
+		rg.dungeon_id = "rush"
+		rg.position = world.random_pos_in_biome(1, world.spawn_point(), 640.0, rng)
+		entities.add_child(rg)
 
 
 # Menara Tanpa Ujung: keluar lalu masuk lagi dengan lantai berikutnya (tower_cur sudah diatur dungeon.gd)

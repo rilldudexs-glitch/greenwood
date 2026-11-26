@@ -79,7 +79,7 @@ func default_player() -> Dictionary:
 		"intro": false, "world2_unlocked": false, "world": 0, "clock": 240.0,
 		"secrets": {}, "kills": {},
 		"story": {"ch": 0, "on": false, "n": false, "k": {}, "v": {}}, "bosskills": {}, "dungeons": {}, "lore": {}, "bseen": {},
-		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0, "ench": {}, "bst": {},
+		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0, "rush": 0, "rush_clear": 0, "ench": {}, "bst": {},
 	}
 
 
@@ -344,7 +344,7 @@ func load_save() -> bool:
 	data = _migrate(data)
 	var d := default_player()
 	var sp: Dictionary = data["p"]
-	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls", "tower"]:
+	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls", "tower", "rush", "rush_clear"]:
 		d[k] = int(sp.get(k, d[k]))
 	for k in ["name", "gender", "skin", "sword", "staff", "job", "title"]:
 		d[k] = str(sp.get(k, d[k]))

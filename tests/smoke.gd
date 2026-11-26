@@ -50,6 +50,8 @@ func _test_progress() -> void:
     Game.p["tower_cur"] = 7
     var def: Dictionary = d._tower_def()
     check(int(def["boss"]["hp"]) > 0 and int(def["lo"]) >= 1 and def["gen"] != "", "def menara salah")
+    var rd: Dictionary = d._rush_boss(3)
+    check(int(rd["hp"]) > 0 and String(rd["kind"]) != "", "boss rush def salah")
     d.free()
     Game.new_game("Tester", "m")
 

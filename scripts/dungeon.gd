@@ -136,6 +136,14 @@ const DEFS := {
         "torch": Color(0.7, 0.8, 1.0), "tint": Color(0.80, 0.82, 0.90),
         "gen": "rooms", "feat": [], "deco": "roots",
     },
+    "rush": {
+        "name": "Boss Rush", "biome": 1, "lo": 1, "hi": 1, "rec": 1,
+        "mobs": ["slime"],
+        "boss": {"name": "Bos", "kind": "bear", "lv": 1, "hp": 400},
+        "floor": [Color(0.17, 0.13, 0.18), Color(0.2, 0.15, 0.21)], "wall": Color(0.08, 0.06, 0.09), "face": Color(0.15, 0.1, 0.13),
+        "torch": Color(1.0, 0.55, 0.3), "tint": Color(0.9, 0.8, 0.85),
+        "gen": "rooms", "feat": [], "deco": "roots",
+    },
     "verdan": {
         "name": "Sarang Verdan", "biome": 14, "lo": 976, "hi": 998, "rec": 976,
         "mobs": ["verdan_stag", "canopy_hunter", "elder_boar", "vine_strangler", "grove_colossus"],
@@ -167,6 +175,7 @@ var rooms: Array = []              # Rect2i (satuan sel)
 var exits: Array = []              # posisi dunia pintu keluar
 var rect := Rect2()
 var boss_dead := false
+var rstage := 0                    # tahap Boss Rush (0 = bos pertama)
 var tfloor := 0                    # nomor lantai (hanya Menara Tanpa Ujung)
 var nexts: Array = []              # pintu lantai berikutnya (menara)
 var _hint_ms := 0
@@ -271,6 +280,8 @@ func build(pl) -> void:
     def = DEFS[id]
     if id == "menara":
         def = _tower_def()
+    elif id == "rush":
+        def = _rush_def()
     position = ORIGIN
     rect = Rect2(ORIGIN, Vector2(GW * TILE, GH * TILE))
     var rng := RandomNumberGenerator.new()
@@ -309,6 +320,34 @@ func _tower_def() -> Dictionary:
     b["hp"] = int(Bal.interp(TOWER_HP, float(bl)) * (1.0 + 0.08 * float(fl - 1)))
     b["name"] = "Penjaga Lantai %d" % fl
     return t
+
+
+# Boss Rush: bos semua dungeon berurutan di satu arena, level mengikuti level pemain.
+func _rush_boss(stage: int) -> Dictionary:
+    var src: Dictionary = DEFS[ORDER[stage]]["boss"]
+    var plv: int = int(Game.p.get("level", 1))
+    var bl: int = clampi(plv + 2 + stage * 2, 1, 1000)
+    return {"name": "%s (%d/%d)" % [String(src["name"]), stage + 1, ORDER.size()], "kind": String(src["kind"]), "lv": bl,
+        "hp": int(Bal.interp(TOWER_HP, float(bl)) * (1.3 + 0.1 * float(stage)))}
+
+
+func _rush_def() -> Dictionary:
+    var t: Dictionary = (DEFS["rush"] as Dictionary).duplicate(true)
+    t["rec"] = int(Game.p.get("level", 1))
+    t["boss"] = _rush_boss(0)
+    rstage = 0
+    return t
+
+
+func _rush_spawn(stage: int) -> void:
+    if stage > 0 and (not is_inside_tree() or main == null or main.dungeon != self):
+        return
+    var bc: Vector2i = (rooms[5] as Rect2i).get_center()
+    var b: Dictionary = _rush_boss(stage)
+    def["boss"] = b
+    _spawn_mob_at(String(b["kind"]), Vector2i(bc.x + 2, bc.y), int(b["lv"]), {"name": String(b["name"]), "hp": int(b["hp"])}, 5)
+    boss_dead = false
+    main.hud.show_banner("Boss Rush %d/%d: %s" % [stage + 1, ORDER.size(), String(b["name"])], 3.0)
 
 
 func _feat(f: String) -> bool:
@@ -1024,6 +1063,9 @@ func _populate(rng: RandomNumberGenerator) -> void:
     var hi: float = float(def["hi"])
     exits.append(cell_pos((rooms[0] as Rect2i).get_center() + Vector2i(-2, 0)))
     _add_exit_mark(exits[0])
+    if id == "rush":
+        _rush_spawn(0)
+        return
     # ruang 1..4: monster, level naik tiap ruang
     for i in range(1, 5):
         var r: Rect2i = rooms[i]
@@ -1055,6 +1097,14 @@ func boss_down() -> void:
     if boss_dead:
         return
     boss_dead = true
+    if id == "rush":
+        rstage += 1
+        if rstage < ORDER.size():
+            main.spawn_pickup("coin", cell_pos((rooms[5] as Rect2i).get_center()) + Vector2(0, 30), 300 + 60 * int(def["boss"]["lv"]))
+            boss_dead = false
+            main.hud.show_banner("Bos %d kalah! Berikutnya muncul..." % rstage, 2.5)
+            main.get_tree().create_timer(3.0).timeout.connect(_rush_spawn.bind(rstage))
+            return
     var br: Rect2i = rooms[5]
     var bc: Vector2i = br.get_center()
     var center: Vector2 = cell_pos(bc)
@@ -1075,6 +1125,13 @@ func boss_down() -> void:
     var ex: Vector2 = cell_pos(Vector2i(bc.x, bc.y - 3))
     exits.append(ex)
     _add_exit_mark(ex)
+    if id == "rush":
+        Game.p["rush"] = ORDER.size()
+        Game.p["rush_clear"] = int(Game.p.get("rush_clear", 0)) + 1
+        main.hud.show_banner("BOSS RUSH SELESAI!", 4.0)
+        Audio.sfx("win")
+        Game.save()
+        return
     if id == "menara":
         Game.p["tower"] = maxi(int(Game.p.get("tower", 0)), tfloor)
         var nx: Vector2 = cell_pos(Vector2i(bc.x + 4, bc.y - 3))

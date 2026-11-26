@@ -117,6 +117,7 @@ const ACH := [
     {"id": "t5", "name": "Pendaki Menara", "desc": "Capai lantai 5 Menara Tanpa Ujung", "kind": "tower", "n": 5, "coins": 3000, "gems": 10, "title": "Pendaki"},
     {"id": "t25", "name": "Penakluk Menara", "desc": "Capai lantai 25 Menara Tanpa Ujung", "kind": "tower", "n": 25, "coins": 30000, "gems": 50, "title": "Penakluk Menara"},
     {"id": "t100", "name": "Tanpa Ujung", "desc": "Capai lantai 100 Menara Tanpa Ujung", "kind": "tower", "n": 100, "coins": 150000, "gems": 150, "title": "Sang Tanpa Ujung"},
+    {"id": "rush5", "name": "Pemanasan Bos", "desc": "Kalahkan 14 bos berurutan di Boss Rush", "kind": "rush", "n": 14, "coins": 60000, "gems": 100, "title": "Juara Boss Rush"},
     {"id": "job2", "name": "Jalan Warisan", "desc": "Ambil job rahasia atau Legend", "kind": "job", "n": 1, "coins": 5000, "gems": 20, "title": "Pewaris"},
     {"id": "end", "name": "Akhir Cerita", "desc": "Tamatkan cerita utama", "kind": "ending", "n": 1, "coins": 50000, "gems": 100, "title": "Penjaga Greenwood"},
 ]
@@ -168,6 +169,8 @@ static func value(a: Dictionary) -> int:
             return _count_pos(Game.p.get("fast", {}))
         "tower":
             return int(Game.p.get("tower", 0))
+        "rush":
+            return int(Game.p.get("rush", 0))
         "job":
             var j: String = String(Game.p.get("job", ""))
             return 1 if (j in ["root_guard", "seal_weaver", "mist_shade", "wild_caller", "seed_brewer", "seed_bearer"]) else 0
