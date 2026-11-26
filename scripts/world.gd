@@ -39,11 +39,12 @@ const WORLD_BIOMES := [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     [0, 11, 12, 13, 14, 15],
 ]
-const PORTAL_W1 := Vector2i(356, 68)    # portal ke World 2 (CENTER + (100, -60))
+const PORTAL_W1 := Vector2i(356, 68)    # fallback jika kastil Enchanted Forest tidak ditemukan
 const PORTAL_W2 := Vector2i(256, 114)   # portal kembali ke World 1, di utara desa pos
 
 var world_id := 0
 var LAIRS: Array = []
+var _portal_w1_cell := Vector2i(-1, -1)
 
 # [x0, y0, tipe, varian] ; semua 4x3 tile, menghadap selatan
 const PLOTS := [
@@ -166,6 +167,8 @@ func has_biome(b: int) -> bool:
 
 
 func portal_cell() -> Vector2i:
+    if world_id == 0 and _portal_w1_cell.x >= 0:
+        return _portal_w1_cell
     return PORTAL_W1 if world_id == 0 else PORTAL_W2
 
 
@@ -182,8 +185,6 @@ func _anchor_points() -> Array:
         var a: float = -PI + (float(k) + 0.5) * TAU / float(n)
         var c := Vector2i(CENTER.x + roundi(cos(a) * r), CENTER.y + roundi(sin(a) * r))
         out.append(Vector2i(clampi(c.x, 8, W - 9), clampi(c.y, 8, H - 9)))
-    if world_id == 0:
-        out.append(PORTAL_W1)
     return out
 
 
@@ -441,15 +442,9 @@ func _generate() -> void:
             _road(x0 + 1, yy2)
             _road(x0 + 2, yy2)
             yy2 += 1
-    # lahan portal dibersihkan
-    var pc: Vector2i = portal_cell()
-    for yy in range(pc.y - 5, pc.y + 6):
-        for xx in range(pc.x - 5, pc.x + 6):
-            if Vector2(xx - pc.x, yy - pc.y).length() <= 4.6 and in_bounds(Vector2i(xx, yy)):
-                var pidx := idx(xx, yy)
-                kind[pidx] = K.GROUND
-                ore.erase(pidx)
-    _place_castles(rng)          # kastil dulu (di pusat tiap biome), lalu pos/perumahan menjauhinya
+    _place_castles(rng)          # kastil dulu, lalu portal ditempatkan di samping kastil Enchanted Forest
+    if world_id == 0:
+        _place_world2_portal_by_enchanted_castle(rng)
     _place_shortcuts(rng)
     _place_outposts(rng)
     _thin_thickets()
@@ -489,6 +484,41 @@ func _place_castles(rng: RandomNumberGenerator) -> void:
         if site.x < 0:
             continue
         _build_castle(site, cw, ch, vis_h, b, rng)
+
+# Portal World 2 selalu berada di sisi kastil Enchanted Forest (biome 8).
+# Area portal dibersihkan dan disambungkan langsung ke jalan gerbang kastil.
+func _place_world2_portal_by_enchanted_castle(rng: RandomNumberGenerator) -> void:
+    _portal_w1_cell = PORTAL_W1
+    for ci in castles.size():
+        var cs: Dictionary = castles[ci]
+        if int(cs["biome"]) != 8:
+            continue
+        var x: int = int(cs["x"])
+        var y: int = int(cs["y"])
+        var cw: int = int(cs["w"])
+        var ch: int = int(cs["h"])
+        var candidates := [
+            Vector2i(x + cw + 4, y + ch + 1),
+            Vector2i(x - 4, y + ch + 1),
+            Vector2i(x + cw / 2, y + ch + 7),
+            Vector2i(x + cw / 2, y - 5)
+        ]
+        for candidate in candidates:
+            if in_bounds(candidate) and biome[idx(candidate.x, candidate.y)] == 8:
+                _portal_w1_cell = candidate
+                break
+        var pc := _portal_w1_cell
+        for yy in range(pc.y - 5, pc.y + 6):
+            for xx in range(pc.x - 5, pc.x + 6):
+                var c := Vector2i(xx, yy)
+                if Vector2(xx - pc.x, yy - pc.y).length() <= 4.6 and in_bounds(c):
+                    var pidx := idx(xx, yy)
+                    if kind[pidx] != K.WATER and kind[pidx] != K.HOUSE:
+                        kind[pidx] = K.GROUND
+                        ore.erase(pidx)
+        _wind_road(_castle_gate(ci), Vector2(pc), 5.0, 1800 + pc.x * 3 + pc.y, rng, true, 2)
+        return
+    push_warning("Kastil Enchanted Forest tidak ditemukan; portal memakai lokasi fallback.")
 
 
 # Kastil diletakkan di PUSAT tiap biome: rata-rata posisi semua sel biome itu, lalu cari lokasi valid
