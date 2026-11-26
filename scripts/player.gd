@@ -134,7 +134,7 @@ func staff() -> Dictionary:
 
 
 func defense() -> float:
-	return (stat("vit") * 0.5 + _eq_sum("def")) * Jobs.mul("def")
+	return (stat("vit") * 0.8 + _eq_sum("def")) * Jobs.mul("def")
 
 
 var mounted := false
@@ -149,27 +149,27 @@ func toggle_mount() -> String:
 
 
 func move_speed() -> float:
-	return (100.0 + stat("dex") * 1.5 + _eq_sum("spd")) * Jobs.mul("spd") * (1.6 if mounted else 1.0)
+	return (100.0 + stat("dex") * 2.0 + _eq_sum("spd")) * Jobs.mul("spd") * (1.6 if mounted else 1.0)
 
 
 func attack_cooldown() -> float:
-	return maxf(0.5 - stat("dex") * 0.012, 0.18) * float(sword().get("cd", 1.0)) * Jobs.mul("cd")
+	return maxf(0.5 - stat("dex") * 0.008, 0.18) * float(sword().get("cd", 1.0)) * Jobs.mul("cd")
 
 
 func crit_chance() -> float:
-	var c: float = 0.03 + stat("luk") * 0.01 + stat("dex") * 0.003
+	var c: float = 0.03 + stat("luk") * 0.0125 + stat("dex") * 0.003
 	if String(sword().get("fx", "")) == "crit":
 		c += 0.15
 	return minf(c + Jobs.add("crit"), 0.85)
 
 
 func melee_damage() -> int:
-	var raw: int = int(sword().get("dmg", 5)) + stat("str") * 2 + int(_eq_sum("atk"))
+	var raw: int = int(sword().get("dmg", 5)) + stat("str") * 7 + int(_eq_sum("atk"))
 	return int(float(raw) * Bal.player_scale(level()) * Jobs.mul("melee"))
 
 
 func magic_damage() -> int:
-	return int(float(int(staff().get("dmg", 8)) + stat("int") * 2) * Bal.player_scale(level()) * Jobs.mul("magic"))
+	return int(float(int(staff().get("dmg", 8)) + stat("int") * 7) * Bal.player_scale(level()) * Jobs.mul("magic"))
 
 
 func block_chance() -> float:
@@ -183,8 +183,8 @@ func mp_regen() -> float:
 func recalc() -> void:
 	var lv := level()
 	var ratio: float = float(hp) / float(max_hp) if max_hp > 0 else 1.0
-	max_hp = int(float(90 + stat("vit") * 10) * Bal.player_hp_scale(lv) * Jobs.mul("hp")) + int(_eq_sum("hp"))
-	max_mp = int(float(90 + stat("int") * 10) * Bal.player_mp_scale(lv) * Jobs.mul("mp"))
+	max_hp = int(float(90 + stat("vit") * 18) * Bal.player_hp_scale(lv) * Jobs.mul("hp")) + int(_eq_sum("hp"))
+	max_mp = int(float(90 + stat("int") * 18) * Bal.player_mp_scale(lv) * Jobs.mul("mp"))
 	hp = clampi(roundi(ratio * max_hp) if hp > 0 else 0, 0, max_hp)
 	if hp <= 0 and not dead:
 		hp = 1
