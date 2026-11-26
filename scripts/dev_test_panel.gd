@@ -5,6 +5,7 @@ extends CanvasLayer
 var _panel: PanelContainer
 var _god_mode := false
 var _status: Label
+var _god_button: Button
 
 
 func _ready() -> void:
@@ -58,7 +59,7 @@ func _build_ui() -> void:
 	_add_button(column, "+100 LEVEL", _level_100)
 	_add_button(column, "+100 STAT POINTS", _stat_points)
 	_add_button(column, "FULL HP / MP", _full_heal)
-	_add_button(column, "GOD MODE: OFF", _toggle_god_mode)
+	_god_button = _add_button(column, "GOD MODE: OFF", _toggle_god_mode)
 
 	_add_section(column, "ITEMS & PROGRESS")
 	_add_button(column, "+100.000 COINS", _add_coins)
@@ -82,13 +83,14 @@ func _add_section(parent: VBoxContainer, caption: String) -> void:
 	parent.add_child(label)
 
 
-func _add_button(parent: VBoxContainer, caption: String, action: Callable) -> void:
+func _add_button(parent: VBoxContainer, caption: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size = Vector2(0, 38)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(action)
 	parent.add_child(button)
+	return button
 
 
 func _toggle_panel() -> void:
@@ -153,9 +155,8 @@ func _toggle_god_mode() -> void:
 	var pl = _player()
 	if pl != null:
 		pl.set_meta("dev_god_mode", _god_mode)
-	for child in _panel.find_children("*", "Button", true, false):
-		if child.text.begins_with("GOD MODE:"):
-			child.text = "GOD MODE: ON" if _god_mode else "GOD MODE: OFF"
+	if _god_button != null:
+		_god_button.text = "GOD MODE: ON" if _god_mode else "GOD MODE: OFF"
 	_status.text = "God Mode " + ("aktif" if _god_mode else "nonaktif")
 
 
