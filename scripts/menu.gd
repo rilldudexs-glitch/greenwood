@@ -444,6 +444,16 @@ func _build_stats() -> void:
         v.custom_minimum_size = Vector2(50, 0)
         row.add_child(v)
         row.add_child(_btn("+", _add_stat.bind(k), pts <= 0))
+        if k == "str" and pts > 0:
+            var amount := SpinBox.new()
+            amount.min_value = 1
+            amount.max_value = pts
+            amount.step = 1
+            amount.value = mini(10, pts)
+            amount.custom_minimum_size = Vector2(76, 0)
+            amount.tooltip_text = "Jumlah poin Strength yang ingin ditambahkan"
+            row.add_child(amount)
+            row.add_child(_btn("Tambah", _add_stat_amount.bind(k, amount), false))
         var d := _lbl("  " + String(Game.STAT_LONG[k]), 11, Color(0.65, 0.7, 0.85))
         row.add_child(d)
     mid.add_child(HSeparator.new())
@@ -455,6 +465,14 @@ func _build_stats() -> void:
 
 func _add_stat(k: String) -> void:
     player.add_stat(k)
+    _refresh()
+
+
+func _add_stat_amount(k: String, amount: SpinBox) -> void:
+    var count: int = clampi(int(amount.value), 1, int(Game.p["points"]))
+    if count <= 0:
+        return
+    player.add_stat_amount(k, count)
     _refresh()
 
 
