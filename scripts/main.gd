@@ -701,14 +701,14 @@ func _portal_check() -> void:
 	if Input.is_action_just_pressed("interact"):
 		if Net.active:
 			hud.show_banner("Portal tidak bisa dipakai saat co-op", 2.5)
-		elif to_w2 and int(Game.p["level"]) < 200:
-			hud.show_banner("Portal World 2 butuh Level 200 (kamu Lv %d)" % int(Game.p["level"]), 3.0)
+		elif to_w2 and int(Game.p["level"]) < 500:
+			hud.show_banner("Portal World 2 butuh Level 500 (kamu Lv %d)" % int(Game.p["level"]), 3.0)
 		else:
 			Game.switch_world(1 if to_w2 else 0)
 		return
 	if Time.get_ticks_msec() - _portal_hint_ms > 3000:
 		_portal_hint_ms = Time.get_ticks_msec()
-		hud.show_banner("Tekan E untuk masuk ke %s" % ("World 2" if to_w2 else "World 1"), 2.0)
+		hud.show_banner("Tekan E untuk masuk ke %s" % ("World 2 • LV 500+" if to_w2 else "World 1"), 2.0)
 
 
 # ------------------------------------------------------------------ prasasti kuno
