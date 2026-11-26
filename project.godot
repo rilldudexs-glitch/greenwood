@@ -27,6 +27,7 @@ Perf="*res://scripts/perf.gd"
 Raven="*res://scripts/raven.gd"
 Gear="*res://scripts/gear.gd"
 Net="*res://scripts/net.gd"
+DevTest="*res://scripts/dev_test_panel.gd"
 
 [display]
 
