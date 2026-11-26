@@ -112,12 +112,10 @@ func _refresh_player() -> void:
 	if pl == null:
 		_status.text = "Pemain belum tersedia"
 		return
-	if pl.has_method("max_hp"):
-		pl.hp = pl.max_hp()
-	if pl.has_method("max_mp"):
-		pl.mp = pl.max_mp()
-	if pl.has_method("update_stats"):
-		pl.update_stats()
+	if pl.has_method("recalc"):
+		pl.recalc()
+	pl.hp = int(pl.max_hp)
+	pl.mp = float(pl.max_mp)
 	_status.text = "Lv %d • Koin %d • Gem %d" % [int(Game.p.get("level", 1)), int(Game.p.get("coins", 0)), int(Game.p.get("gems", 0))]
 	Game.save()
 
