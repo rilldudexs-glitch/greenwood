@@ -561,7 +561,7 @@ func take_damage(amount: int, _dir2: Vector2, crit: bool = false) -> void:
         _flash = 0.1
         _hurt = 0.18
         Audio.sfx("hit", 0.8)
-        get_tree().current_scene.fx_text(global_position + Vector2(randf_range(-14, 14), -radius - 14.0), str(amount) + ("!" if crit else ""), Color(1, 0.85, 0.2) if crit else Color.WHITE, 18.0 if crit else 14.0)
+        get_tree().current_scene.fx_text(global_position + Vector2(randf_range(-14, 14), -radius - 14.0), str(amount) + ("!" if crit else ""), Color(1.0, 0.72, 0.1) if crit else Color.WHITE, 24.0 if crit else 14.0)
         Net.send_hit(net_id, amount, _dir2, crit)
         return
     if _dead or player == null or player.dead:
@@ -575,7 +575,7 @@ func take_damage(amount: int, _dir2: Vector2, crit: bool = false) -> void:
     _hurt = 0.18
     Audio.sfx("hit", 0.8)
     var main = get_tree().current_scene
-    main.fx_text(global_position + Vector2(randf_range(-14, 14), -radius - 14.0), str(amount) + ("!" if crit else ""), Color(1, 0.85, 0.2) if crit else Color.WHITE, 18.0 if crit else 14.0)
+    main.fx_text(global_position + Vector2(randf_range(-14, 14), -radius - 14.0), str(amount) + ("!" if crit else ""), Color(1.0, 0.72, 0.1) if crit else Color.WHITE, 24.0 if crit else 14.0)
     main.fx_burst(global_position + Vector2(randf_range(-14, 14), randf_range(-14, 14)), Color(1, 0.9, 0.6), 6, 60.0, 0.3, 0.0, 2.0, "star")
     if _hud:
         _hud.update_boss(hp)
@@ -590,6 +590,7 @@ func _die() -> void:
     active = false
     remove_from_group("enemies")
     Audio.sfx("boss_die")
+    Game.vibrate(250)
     var main = get_tree().current_scene
     for i in 8:
         main.fx_burst(global_position + Vector2(randf_range(-26, 26), randf_range(-26, 26)), COLORS[style], 14, 90.0, 0.8, 30.0, 3.0, "star")

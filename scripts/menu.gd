@@ -319,6 +319,36 @@ func _item_stats_text(id: String) -> String:
     return String(d["desc"])
 
 
+# Bandingkan item terpilih dengan yang sedang dipakai: [[teks, warna], ...]
+func _compare_lines(id: String) -> Array:
+    var out: Array = []
+    if not Items.is_equipment(id) or _is_equipped(id):
+        return out
+    var d := Items.info(id)
+    var cur := ""
+    var keys: Array = []
+    match String(d["type"]):
+        "sword":
+            cur = String(Game.p["sword"])
+            keys = [["dmg", "Serangan"]]
+        "staff":
+            cur = String(Game.p["staff"])
+            keys = [["dmg", "Sihir"]]
+        "armor":
+            cur = String(Game.p["equip"].get(String(d.get("slot", "")), ""))
+            keys = [["def", "DEF"], ["hp", "HP"], ["atk", "ATK"]]
+    if cur == "":
+        out.append(["Slot kosong: langsung lebih baik", Color(0.5, 1, 0.55)])
+        return out
+    var c := Items.info(cur)
+    for k in keys:
+        var diff: float = float(d.get(k[0], 0)) - float(c.get(k[0], 0))
+        if absf(diff) < 0.001:
+            continue
+        out.append(["%s %s%d  (dipakai: %s)" % [String(k[1]), "▲ +" if diff > 0.0 else "▼ ", int(diff), String(c.get("name", "?"))], Color(0.5, 1, 0.55) if diff > 0.0 else Color(1, 0.5, 0.5)])
+    return out
+
+
 func _build_detail(box: VBoxContainer) -> void:
     if _sel == "":
         box.add_child(_lbl("Pilih item untuk melihat detail.", 13, Color(0.7, 0.75, 0.9)))
@@ -333,6 +363,10 @@ func _build_detail(box: VBoxContainer) -> void:
     var l := _lbl(_item_stats_text(_sel), 13)
     l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     box.add_child(l)
+    for cl in _compare_lines(_sel):
+        var cl_l := _lbl(String(cl[0]), 12, cl[1])
+        cl_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        box.add_child(cl_l)
     if String(d["type"]) != "armor" and String(d["desc"]) != "" and not Items.is_equipment(_sel):
         pass
     elif String(d["type"]) == "armor":
@@ -722,6 +756,11 @@ func _build_settings() -> void:
     cl.button_pressed = bool(Game.settings["low_mode"])
     cl.toggled.connect(Perf.set_low_mode)
     vb.add_child(cl)
+    var ch := CheckBox.new()
+    ch.text = "Getar (haptic) saat kena hit / level up"
+    ch.button_pressed = bool(Game.settings["haptic"])
+    ch.toggled.connect(Game.set_haptic)
+    vb.add_child(ch)
     var cu := CheckBox.new()
     cu.text = "Ultra hemat (efek minimal, paling ringan)"
     cu.button_pressed = bool(Game.settings["ultra_mode"])

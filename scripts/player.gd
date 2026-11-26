@@ -205,6 +205,7 @@ func give_xp(n: int) -> void:
 		hp = max_hp
 		mp = float(max_mp)
 		Audio.sfx("levelup")
+		Game.vibrate(120)
 		if hud:
 			hud.show_banner("LEVEL %d!  +%d poin stat" % [level(), Game.POINTS_PER_LEVEL], 3.0)
 		get_tree().current_scene.fx_burst(global_position, Color(1.0, 0.9, 0.3), 26, 100.0, 0.9, -20.0, 2.5, "star")
@@ -235,10 +236,17 @@ func remove_item(id: String, n: int = 1) -> bool:
 	return true
 
 
+var _coin_combo := 0
+var _coin_ms := 0
+
+
 func collect(kind: String, amount: int) -> bool:
 	if kind == "coin":
 		Game.p["coins"] = int(Game.p["coins"]) + amount
-		Audio.sfx("coin", randf_range(0.95, 1.2))
+		var now: int = Time.get_ticks_msec()
+		_coin_combo = (_coin_combo + 1) if now - _coin_ms < 600 else 0     # ambil beruntun: nada makin tinggi
+		_coin_ms = now
+		Audio.sfx("coin", 0.95 + minf(float(_coin_combo), 10.0) * 0.045)
 		fx_text_here("+%d" % amount, Color(1.0, 0.85, 0.3), 11.0)
 	elif kind == "gems":
 		Game.p["gems"] = int(Game.p["gems"]) + amount
@@ -898,6 +906,7 @@ func take_damage(amount: int, from: Vector2, _src: String = "") -> void:
 	if _fish != "":
 		_cancel_fish("Pancingan terganggu!")
 	Audio.sfx("hurt")
+	Game.vibrate(35 if dmg < max_hp / 4 else 90)
 	shake_camera(0.5)
 	get_tree().current_scene.fx_text(global_position + Vector2(0, -24), ("Tangkis " if blocked else "-") + str(dmg), Color(0.6, 0.8, 1.0) if blocked else Color(1.0, 0.35, 0.35), 15.0)
 	if hp <= 0:

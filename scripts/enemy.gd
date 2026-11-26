@@ -943,7 +943,7 @@ func _draw() -> void:
 		draw_circle(Vector2(sin(_t * 7.0) * 3.0, -radius - 2.0), 2.0, Color(0.5, 1.0, 0.3, 0.9))
 	if _slow > 0.0:
 		draw_circle(Vector2(0, 0), radius + 2.0, Color(0.6, 0.9, 1.0, 0.25))
-	if _show_bar > 0.0 or hp < max_hp or is_mini:
+	if _show_bar > 0.0 or is_mini:
 		var w := 22.0 if not big else 36.0
 		if is_mini:
 			w = 52.0
@@ -968,7 +968,7 @@ func take_damage(amount: int, dir: Vector2, crit: bool = false) -> void:
 	if puppet:
 		# klien: HP asli ada di host. Tampilkan umpan balik lokal, kirim damage ke host.
 		_flash = 0.15
-		_show_bar = 3.0
+		_show_bar = 4.0
 		var pm = get_tree().current_scene
 		Audio.sfx("hit", randf_range(0.9, 1.15))
 		pm.fx_text(global_position + Vector2(0, -bar_y - 2.0), str(amount) + ("!" if crit else ""), Color(1.0, 0.85, 0.2) if crit else Color(1, 1, 1), 18.0 if crit else 13.0)
@@ -995,7 +995,7 @@ func _apply_gap() -> void:
 func _hurt(amount: int, dir: Vector2, crit: bool) -> void:
 	hp -= amount
 	_flash = 0.15
-	_show_bar = 3.0
+	_show_bar = 4.0
 	var ak := archetype()
 	var resist: float = 0.35 if ak == "ogre" or ak == "red_ogre" or ak == "bear" or ak == "golem" else 1.0   # monster besar sulit terpental
 	if is_mini:
@@ -1004,7 +1004,15 @@ func _hurt(amount: int, dir: Vector2, crit: bool) -> void:
 		_knock = dir.normalized() * 170.0 * resist
 		Audio.sfx("hit", randf_range(0.9, 1.15))
 	var main = get_tree().current_scene
-	main.fx_text(global_position + Vector2(0, -bar_y - 2.0), str(amount) + ("!" if crit else ""), Color(1.0, 0.85, 0.2) if crit else Color(1, 1, 1), 18.0 if crit else 13.0)
+	var tcol := Color(1, 1, 1)
+	var tsz := 13.0
+	if crit:
+		tcol = Color(1.0, 0.72, 0.1)
+		tsz = 22.0
+	elif dir == Vector2.ZERO:                       # damage racun / bakar berjalan: kecil & berwarna
+		tcol = Color(0.55, 1.0, 0.35) if _poison > 0.0 else Color(1.0, 0.6, 0.2)
+		tsz = 11.0
+	main.fx_text(global_position + Vector2(0, -bar_y - 2.0), str(amount) + ("!" if crit else ""), tcol, tsz)
 	if dir != Vector2.ZERO:
 		main.fx_burst(global_position, Color(1, 0.9, 0.6), 5, 50.0, 0.3, 0.0, 1.8, "star")
 	if hp <= 0:

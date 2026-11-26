@@ -22,7 +22,7 @@ const POINTS_PER_LEVEL := 2
 const GACHA_COST := 60
 
 var p := {}
-var settings := {"bgm": 0.7, "sfx": 0.9, "muted": false, "show_fps": false, "low_mode": false, "ultra_mode": false, "cap30": false}
+var settings := {"bgm": 0.7, "sfx": 0.9, "muted": false, "show_fps": false, "low_mode": false, "ultra_mode": false, "cap30": false, "haptic": true}
 var in_game := false
 var world_seed := 0
 var chests_opened: Array = []
@@ -188,6 +188,20 @@ func load_settings() -> void:
 		settings["low_mode"] = bool(data.get("low_mode", false))
 		settings["ultra_mode"] = bool(data.get("ultra_mode", false))
 		settings["cap30"] = bool(data.get("cap30", false))
+		settings["haptic"] = bool(data.get("haptic", true))
+
+
+func set_haptic(on: bool) -> void:
+	settings["haptic"] = on
+	save_settings()
+	if on:
+		vibrate(40)
+
+
+# Getar HP (Android/iOS). Tidak melakukan apa-apa di PC atau jika dimatikan di setelan.
+func vibrate(ms: int) -> void:
+	if bool(settings.get("haptic", true)) and OS.has_feature("mobile"):
+		Input.vibrate_handheld(ms)
 
 
 func save_settings() -> void:

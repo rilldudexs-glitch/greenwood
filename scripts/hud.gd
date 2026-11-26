@@ -1025,6 +1025,17 @@ func _exit_tree() -> void:
         fog.flush()
 
 
+# HP: kalau aplikasi masuk background / ada telepon, game otomatis berhenti sementara (daftar jeda terbuka)
+func _notification(what: int) -> void:
+    if what != NOTIFICATION_APPLICATION_PAUSED and what != NOTIFICATION_APPLICATION_FOCUS_OUT:
+        return
+    if not OS.has_feature("mobile") or Net.active or _dlg == null or pause_list == null:
+        return
+    if player == null or not is_instance_valid(player) or player.dead or busy():
+        return
+    open_pause_list()
+
+
 func _process(delta: float) -> void:
     if _dlg != null and _dlg.visible and _port_l != null:
         _place_dialog(get_viewport().get_visible_rect().size)

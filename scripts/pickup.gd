@@ -31,8 +31,10 @@ func _physics_process(delta: float) -> void:
         _vel = _vel.move_toward(Vector2.ZERO, 120.0 * delta)
     if player and not player.dead:
         var d: float = global_position.distance_to(player.global_position)
-        if d < 44.0 and _life < 119.5:
-            global_position = global_position.move_toward(player.global_position, 150.0 * delta)
+        var rng_m: float = 96.0 if (kind == "coin" or kind == "gems") else 56.0     # koin & gem tersedot dari lebih jauh
+        if d < rng_m and _life < 119.5:
+            var spd: float = 150.0 + (rng_m - d) * 5.0                                # makin dekat makin cepat
+            global_position = global_position.move_toward(player.global_position, spd * delta)
         if d < 14.0 and _life < 119.5:
             if player.collect(kind, amount):
                 queue_free()

@@ -23,6 +23,7 @@ const DungeonScript = preload("res://scripts/dungeon.gd")
 const CaveGateScript = preload("res://scripts/cave_gate.gd")
 const Lore = preload("res://scripts/lore.gd")
 const AtmosScript = preload("res://scripts/atmosphere.gd")
+const AmbientScript = preload("res://scripts/ambient.gd")
 const EventsScript = preload("res://scripts/world_events.gd")
 const JournalPageScript = preload("res://scripts/journal_page.gd")
 const Journal = preload("res://scripts/journal.gd")
@@ -74,6 +75,23 @@ var atmos = null                   # siang-malam & cuaca (atmosphere.gd)
 var events = null                  # event dunia: Bulan Darah, meteor (world_events.gd)
 var blood_moon := false            # true saat Bulan Darah (dibaca enemy.gd: monster lebih galak, hadiah lebih besar)
 var _tower_next := false
+const LOAD_TIPS := [
+	"Ngobrol dengan tiap penduduk desa, kadang mereka menyimpan petunjuk.",
+	"Temukan kastil di tiap biome untuk membuka teleport di Peta.",
+	"Zona monster sudah dibagi per level. Cari yang cocok denganmu.",
+	"Potion bisa diketuk langsung dari tombol di bawah layar.",
+	"Skill tree dan gelar ada di menu jeda, bagian Karakter.",
+	"Menara Tanpa Ujung dekat desa cocok buat farming level.",
+	"Bos kembali setelah beberapa menit, jadi tidak perlu terburu-buru.",
+	"Bahan dari monster dipakai di Crafting untuk membuat gear.",
+	"Kritikal muncul sebagai angka kuning besar.",
+	"Aktifkan Mode hemat di setelan kalau game terasa berat.",
+	"Pet kamu ikut menyerang musuh di dekat. Panggil lewat skill job.",
+	"Hati-hati bos berlevel jauh di atasmu, damage-mu hampir tidak terasa.",
+	"Tugas Warga tersebar di setiap biome, cari tanda seru di atas kepala NPC.",
+	"Malam hari kunang-kunang dan kelelawar keluar. Bawa banyak potion.",
+	"Pilihan di akhir cerita menentukan nasib Greenwood.",
+]
 var dungeon = null                 # dungeon yang sedang dimasuki pemain (dungeon.gd) atau null
 var _return_pos := Vector2.ZERO    # posisi di dunia terbuka untuk kembali dari dungeon
 var _loading: CanvasLayer
@@ -108,6 +126,10 @@ func _ready() -> void:
 	atmos.name = "Atmosphere"
 	add_child(atmos)
 	atmos.setup(self, player, world)
+	var amb = AmbientScript.new()
+	amb.name = "Ambient"
+	add_child(amb)
+	amb.setup(self, player, world, atmos)
 	events = EventsScript.new()
 	events.name = "WorldEvents"
 	add_child(events)
@@ -222,6 +244,16 @@ func _build_loading() -> void:
 	_load_lbl.add_theme_font_override("font", load("res://assets/fonts/DejaVuSans.ttf"))
 	_load_lbl.add_theme_font_size_override("font_size", 18)
 	c.add_child(_load_lbl)
+	var tip := Label.new()
+	tip.position = Vector2(-220, 52)
+	tip.size = Vector2(440, 60)
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip.add_theme_font_override("font", load("res://assets/fonts/DejaVuSans.ttf"))
+	tip.add_theme_font_size_override("font_size", 13)
+	tip.add_theme_color_override("font_color", Color(0.75, 0.85, 0.7))
+	tip.text = "Tips: " + String(LOAD_TIPS[randi() % LOAD_TIPS.size()])
+	c.add_child(tip)
 
 
 func _on_world_baked() -> void:
