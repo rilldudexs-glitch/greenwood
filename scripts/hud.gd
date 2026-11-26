@@ -1014,7 +1014,7 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
     if _dlg != null and _dlg.visible and _port_l != null:
-        _place_dialog(get_viewport_rect().size)
+        _place_dialog(get_viewport().get_visible_rect().size)
     if fog != null and player != null and is_instance_valid(player):
         fog.tick(delta, player.global_position, world.has_meta("in_dungeon"))
     banner_t = maxf(banner_t - delta, 0.0)
