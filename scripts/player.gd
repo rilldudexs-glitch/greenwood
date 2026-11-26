@@ -902,6 +902,8 @@ func _update_region() -> void:
 func take_damage(amount: int, from: Vector2, _src: String = "") -> void:
 	if dead:
 		return
+	if bool(get_meta("dev_god_mode", false)):
+		return
 	if _dodge_t > 0.0:
 		_perfect_dodge()
 		return
