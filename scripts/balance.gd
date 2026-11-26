@@ -172,7 +172,7 @@ static func interp(a: Array, x: float) -> float:
 
 # ------------------------------------------------------------------ XP
 static func xp_needed(lv: int) -> int:
-    return int(45.0 + 12.0 * lv + 1.35 * pow(float(lv), 2.55))
+    return int(55.0 + 14.0 * lv + 0.85 * pow(float(lv), 2.3))
 
 
 # XP satuan satu monster (faktor jenis = xp dasar / 6)
