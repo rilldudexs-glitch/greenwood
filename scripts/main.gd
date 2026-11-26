@@ -796,7 +796,7 @@ func dungeon_next() -> void:
 	_tower_next = false
 
 
-func dungeon_enter(did: String) -> void:
+func dungeon_enter(did: String, gate_pos: Vector2 = Vector2.ZERO) -> void:
 	if did == "menara" and not _tower_next:
 		Game.p["tower_cur"] = int(Game.p.get("tower", 0)) + 1
 	if dungeon != null or player == null or player.dead or not DungeonScript.DEFS.has(did):
@@ -805,7 +805,13 @@ func dungeon_enter(did: String) -> void:
 		hud.show_banner("Gua tidak bisa dipakai saat co-op", 2.5)
 		return
 	_return_pos = player.global_position
-	Game.p["pos"] = [_return_pos.x, _return_pos.y]       # kalau game ditutup di dalam gua, muncul lagi di mulut gua
+	# Kembalikan pemain di luar radius interaksi gerbang agar tidak langsung masuk lagi.
+	if gate_pos != Vector2.ZERO:
+		var away: Vector2 = (_return_pos - gate_pos).normalized()
+		if away.length_squared() < 0.01:
+			away = Vector2.RIGHT
+		_return_pos = gate_pos + away * 90.0
+	Game.p["pos"] = [_return_pos.x, _return_pos.y]       # posisi aman di luar radius gerbang
 	var d = DungeonScript.new()
 	d.id = did
 	dungeon = d
