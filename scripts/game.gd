@@ -22,7 +22,7 @@ const POINTS_PER_LEVEL := 2
 const GACHA_COST := 60
 
 var p := {}
-var settings := {"bgm": 0.7, "sfx": 0.9, "muted": false, "show_fps": false, "low_mode": false}
+var settings := {"bgm": 0.7, "sfx": 0.9, "muted": false, "show_fps": false, "low_mode": false, "ultra_mode": false, "cap30": false}
 var in_game := false
 var world_seed := 0
 var chests_opened: Array = []
@@ -79,7 +79,7 @@ func default_player() -> Dictionary:
 		"intro": false, "world2_unlocked": false, "world": 0, "clock": 240.0,
 		"secrets": {}, "kills": {},
 		"story": {"ch": 0, "on": false, "n": false, "k": {}, "v": {}}, "bosskills": {}, "dungeons": {}, "lore": {}, "bseen": {},
-		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "",
+		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0,
 	}
 
 
@@ -186,6 +186,8 @@ func load_settings() -> void:
 		settings["muted"] = bool(data.get("muted", false))
 		settings["show_fps"] = bool(data.get("show_fps", false))
 		settings["low_mode"] = bool(data.get("low_mode", false))
+		settings["ultra_mode"] = bool(data.get("ultra_mode", false))
+		settings["cap30"] = bool(data.get("cap30", false))
 
 
 func save_settings() -> void:
@@ -308,7 +310,7 @@ func load_save() -> bool:
 	data = _migrate(data)
 	var d := default_player()
 	var sp: Dictionary = data["p"]
-	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls"]:
+	for k in ["level", "xp", "points", "coins", "gems", "hp", "mp", "pulls", "tower"]:
 		d[k] = int(sp.get(k, d[k]))
 	for k in ["name", "gender", "skin", "sword", "staff", "job", "title"]:
 		d[k] = str(sp.get(k, d[k]))

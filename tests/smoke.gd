@@ -20,9 +20,32 @@ func _ready() -> void:
     _test_raven()
     _test_gear()
     _test_balance()
+    _test_progress()
     main = load("res://scenes/main.tscn").instantiate()
     get_tree().root.add_child.call_deferred(main)
     _set_scene.call_deferred()
+
+
+func _test_progress() -> void:
+    const Prog = preload("res://scripts/progress.gd")
+    const Dg = preload("res://scripts/dungeon.gd")
+    Game.p["level"] = 60
+    check(Prog.free_points() == 15, "poin skill salah")
+    check(Prog.up("pow") and Prog.rank("pow") == 1, "naik rank gagal")
+    check(Prog.st_mul("melee") > 1.0 and Prog.skill_dmg() == 1.0, "pengali skill tree salah")
+    Prog.reset()
+    check(Prog.spent() == 0, "reset skill gagal")
+    var fresh: Array = Prog.check()
+    check(fresh.size() >= 2 and Prog.is_done("lv10"), "achievement level tidak terbuka")
+    Prog.set_title("lv10")
+    check(Prog.title_text() == "Pemula", "gelar gagal")
+    var d = Dg.new()
+    d.id = "menara"
+    Game.p["tower_cur"] = 7
+    var def: Dictionary = d._tower_def()
+    check(int(def["boss"]["hp"]) > 0 and int(def["lo"]) >= 1 and def["gen"] != "", "def menara salah")
+    d.free()
+    Game.new_game("Tester", "m")
 
 
 func _test_balance() -> void:

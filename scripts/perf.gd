@@ -10,6 +10,7 @@ const TIERS := [
     {"fx_scale": 1.0, "fx_cap": 48, "anim_div": 3, "hud_hz": 30.0, "player_div": 1, "ai_div": 1, "radius": 480.0},
     {"fx_scale": 0.6, "fx_cap": 28, "anim_div": 4, "hud_hz": 20.0, "player_div": 2, "ai_div": 2, "radius": 420.0},
     {"fx_scale": 0.3, "fx_cap": 14, "anim_div": 6, "hud_hz": 12.0, "player_div": 2, "ai_div": 3, "radius": 360.0},
+    {"fx_scale": 0.12, "fx_cap": 6, "anim_div": 8, "hud_hz": 10.0, "player_div": 2, "ai_div": 4, "radius": 310.0},
 ]
 const BAD_DT := 0.0222    # < 45 FPS
 const GOOD_DT := 0.0185   # > 54 FPS
@@ -37,11 +38,32 @@ var _label_t := 0.0
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     _apply(_floor_tier())
+    apply_cap()
 
 
-# Batas bawah tier: "Mode hemat" di setelan memaksa minimal tier 1.
+# Batas bawah tier: "Mode hemat" memaksa minimal tier 1, "Ultra hemat" tier 3 (paling ringan).
 func _floor_tier() -> int:
+    if bool(Game.settings.get("ultra_mode", false)):
+        return 3
     return 1 if bool(Game.settings.get("low_mode", false)) else 0
+
+
+# Batasi 30 FPS (hemat baterai & panas); 0 = tanpa batas
+func apply_cap() -> void:
+    Engine.max_fps = 30 if bool(Game.settings.get("cap30", false)) else 0
+
+
+func set_ultra_mode(on: bool) -> void:
+    Game.settings["ultra_mode"] = on
+    Game.save_settings()
+    if tier < _floor_tier():
+        _apply(_floor_tier())
+
+
+func set_cap30(on: bool) -> void:
+    Game.settings["cap30"] = on
+    Game.save_settings()
+    apply_cap()
 
 
 func set_low_mode(on: bool) -> void:
@@ -72,7 +94,7 @@ func _process(delta: float) -> void:
         _bad = 0
     else:
         _bad = maxi(_bad - 1, 0)
-    if _bad >= 2 and tier < TIERS.size() - 1:
+    if _bad >= 2 and tier < TIERS.size() - 2:
         _bad = 0
         _apply(tier + 1)
     elif _good >= 12 and tier > _floor_tier():
@@ -117,4 +139,4 @@ func _update_label(delta: float) -> void:
     _label_t -= delta
     if _label_t <= 0.0:
         _label_t = 0.5
-        _label.text = "FPS %d  kualitas %d" % [Engine.get_frames_per_second(), 3 - tier]
+        _label.text = "FPS %d  kualitas %d" % [Engine.get_frames_per_second(), 4 - tier]

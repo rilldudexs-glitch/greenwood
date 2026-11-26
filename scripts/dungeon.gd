@@ -128,6 +128,14 @@ const DEFS := {
         "torch": Color(0.4, 1.0, 0.95), "tint": Color(0.46, 0.70, 0.78),
         "gen": "hub", "feat": ["dark", "heal"], "dark": 330.0, "pad": Color(0.45, 1.0, 0.95), "deco": "coral",
     },
+    "menara": {
+        "name": "Menara Tanpa Ujung", "biome": 1, "lo": 1, "hi": 1, "rec": 1,
+        "mobs": ["slime"],
+        "boss": {"name": "Penjaga Lantai", "kind": "bear", "lv": 1, "hp": 400},
+        "floor": [Color(0.20, 0.17, 0.13), Color(0.23, 0.19, 0.15)], "wall": Color(0.10, 0.08, 0.07), "face": Color(0.17, 0.12, 0.09),
+        "torch": Color(0.7, 0.8, 1.0), "tint": Color(0.80, 0.82, 0.90),
+        "gen": "rooms", "feat": [], "deco": "roots",
+    },
     "verdan": {
         "name": "Sarang Verdan", "biome": 14, "lo": 976, "hi": 998, "rec": 976,
         "mobs": ["verdan_stag", "canopy_hunter", "elder_boar", "vine_strangler", "grove_colossus"],
@@ -138,6 +146,8 @@ const DEFS := {
     },
 }
 # urutan gua di dunia (sesuai nomor biome); gua yang biome-nya tidak ada di dunia aktif dilewati main.gd
+# Menara Tanpa Ujung: lantai acak tanpa batas. Tema, level, dan HP bos dihitung ulang tiap lantai (lihat _tower_def).
+const TOWER_HP := [[1, 400], [56, 10500], [175, 107000], [355, 670000], [1000, 1950000]]
 const ORDER := ["akar", "makam", "es", "magma", "gelap", "galat", "palung", "sihir", "kuil", "spora", "aether", "takhta", "karang", "verdan"]
 
 # Pewarna & bentuk benda jatuh per gaya (fall)
@@ -157,6 +167,8 @@ var rooms: Array = []              # Rect2i (satuan sel)
 var exits: Array = []              # posisi dunia pintu keluar
 var rect := Rect2()
 var boss_dead := false
+var tfloor := 0                    # nomor lantai (hanya Menara Tanpa Ujung)
+var nexts: Array = []              # pintu lantai berikutnya (menara)
 var _hint_ms := 0
 var _tint: CanvasModulate
 var _t := 0.0
@@ -198,6 +210,7 @@ class Torch extends Node2D:
 
 class ExitMark extends Node2D:
     var _t := 0.0
+    var label := "KELUAR"
 
     func _process(d: float) -> void:
         _t += d
@@ -209,8 +222,8 @@ class ExitMark extends Node2D:
         draw_circle(Vector2.ZERO, 15.0 + f * 1.5, Color(0.55, 0.95, 1.0, 0.30))
         draw_arc(Vector2.ZERO, 18.0, _t * 2.0, _t * 2.0 + TAU * 0.75, 24, Color(0.8, 1.0, 1.0, 0.9), 2.0)
         var font := ThemeDB.fallback_font
-        draw_string_outline(font, Vector2(-24, -30), "KELUAR", HORIZONTAL_ALIGNMENT_CENTER, 48, 11, 3, Color(0, 0, 0, 0.9))
-        draw_string(font, Vector2(-24, -30), "KELUAR", HORIZONTAL_ALIGNMENT_CENTER, 48, 11, Color(0.8, 1.0, 1.0))
+        draw_string_outline(font, Vector2(-24, -30), label, HORIZONTAL_ALIGNMENT_CENTER, 48, 11, 3, Color(0, 0, 0, 0.9))
+        draw_string(font, Vector2(-24, -30), label, HORIZONTAL_ALIGNMENT_CENTER, 48, 11, Color(0.8, 1.0, 1.0))
 
 
 # Lapisan animasi di atas lantai: jebakan, benda jatuh, arus, portal, gerbang (digambar oleh dungeon.draw_dynamic)
@@ -256,6 +269,8 @@ func build(pl) -> void:
     player = pl
     main = get_tree().current_scene
     def = DEFS[id]
+    if id == "menara":
+        def = _tower_def()
     position = ORIGIN
     rect = Rect2(ORIGIN, Vector2(GW * TILE, GH * TILE))
     var rng := RandomNumberGenerator.new()
@@ -270,6 +285,30 @@ func build(pl) -> void:
     _decorate(rng)
     _setup_features(rng)
     _populate(rng)
+
+
+func _tower_def() -> Dictionary:
+    var fl: int = maxi(int(Game.p.get("tower_cur", 1)), 1)
+    tfloor = fl
+    var plv: int = int(Game.p.get("level", 1))
+    var tl: int = clampi(plv + (fl - 1) * 2, 1, 1000)
+    var theme := "akar"
+    for k in ORDER:
+        if int(DEFS[k]["lo"]) <= tl:
+            theme = String(k)
+    var t: Dictionary = (DEFS[theme] as Dictionary).duplicate(true)
+    t["lo"] = clampi(tl - 3, 1, 1000)
+    t["hi"] = clampi(tl + 3, 1, 1000)
+    t["rec"] = tl
+    t["name"] = "Menara Tanpa Ujung - Lantai %d" % fl
+    var gens := ["rooms", "cavern", "maze", "hub", "gauntlet"]
+    t["gen"] = gens[randi() % gens.size()]
+    var b: Dictionary = t["boss"]
+    var bl: int = clampi(tl + 5, 1, 1000)
+    b["lv"] = bl
+    b["hp"] = int(Bal.interp(TOWER_HP, float(bl)) * (1.0 + 0.08 * float(fl - 1)))
+    b["name"] = "Penjaga Lantai %d" % fl
+    return t
 
 
 func _feat(f: String) -> bool:
@@ -1004,8 +1043,9 @@ func _populate(rng: RandomNumberGenerator) -> void:
         _spawn_mob_at(String(mobs[rng.randi() % mobs.size()]), _rand_cell(rng, br, 5.0), int(hi), {}, 5)
 
 
-func _add_exit_mark(pos: Vector2) -> void:
+func _add_exit_mark(pos: Vector2, label: String = "KELUAR") -> void:
     var m := ExitMark.new()
+    m.label = label
     m.position = pos - ORIGIN
     add_child(m)
 
@@ -1023,7 +1063,10 @@ func boss_down() -> void:
     var biome: int = int(def["biome"])
     var luk: int = int(player.stat("luk")) if player != null else 0
     main.spawn_pickup("coin", center + Vector2(-20, 24), (200 + lv * 30) * 3)
-    main.spawn_pickup("gems", center + Vector2(20, 24), 40 + lv / 4)
+    if id != "menara":
+        main.spawn_pickup("gems", center + Vector2(20, 24), 40 + lv / 4)
+    elif tfloor % 5 == 0:
+        main.spawn_pickup("gems", center + Vector2(20, 24), 20 + tfloor)
     main.spawn_pickup("item:potion_hp2", center + Vector2(0, 34), 3)
     main.spawn_pickup("item:potion_mp2", center + Vector2(-34, 30), 2)
     for k in 2:
@@ -1032,6 +1075,15 @@ func boss_down() -> void:
     var ex: Vector2 = cell_pos(Vector2i(bc.x, bc.y - 3))
     exits.append(ex)
     _add_exit_mark(ex)
+    if id == "menara":
+        Game.p["tower"] = maxi(int(Game.p.get("tower", 0)), tfloor)
+        var nx: Vector2 = cell_pos(Vector2i(bc.x + 4, bc.y - 3))
+        nexts.append(nx)
+        _add_exit_mark(nx, "LANTAI %d" % (tfloor + 1))
+        Audio.sfx("win")
+        main.hud.show_banner("Lantai %d selesai!  Pintu kiri = keluar, kanan = lantai berikut" % tfloor, 4.0)
+        Game.save()
+        return
     var clears: Dictionary = Game.p.get("dungeons", {})
     var first: bool = int(clears.get(id, 0)) == 0
     clears[id] = int(clears.get(id, 0)) + 1
@@ -1060,6 +1112,11 @@ func _physics_process(d: float) -> void:
     if _lamp != null:
         _lamp.position = player.global_position - ORIGIN + Vector2(0, -6)
     _tick_features(d)
+    for nx in nexts:
+        if player.global_position.distance_to(nx) < 44.0 and Input.is_action_just_pressed("interact"):
+            Game.p["tower_cur"] = tfloor + 1
+            main.dungeon_next()
+            return
     for e in exits:
         if player.global_position.distance_to(e) < 44.0:
             if Input.is_action_just_pressed("interact"):

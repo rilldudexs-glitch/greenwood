@@ -114,6 +114,9 @@ const ACH := [
     {"id": "c1", "name": "Pengembara", "desc": "Temukan 1 kastil", "kind": "castles", "n": 1, "coins": 800, "title": "Pengembara"},
     {"id": "c8", "name": "Penjelajah Dunia", "desc": "Temukan 8 kastil", "kind": "castles", "n": 8, "coins": 12000, "gems": 25, "title": "Penjelajah"},
     {"id": "c15", "name": "Pemilik Peta", "desc": "Temukan 15 kastil", "kind": "castles", "n": 15, "coins": 40000, "gems": 60, "title": "Kartografer"},
+    {"id": "t5", "name": "Pendaki Menara", "desc": "Capai lantai 5 Menara Tanpa Ujung", "kind": "tower", "n": 5, "coins": 3000, "gems": 10, "title": "Pendaki"},
+    {"id": "t25", "name": "Penakluk Menara", "desc": "Capai lantai 25 Menara Tanpa Ujung", "kind": "tower", "n": 25, "coins": 30000, "gems": 50, "title": "Penakluk Menara"},
+    {"id": "t100", "name": "Tanpa Ujung", "desc": "Capai lantai 100 Menara Tanpa Ujung", "kind": "tower", "n": 100, "coins": 150000, "gems": 150, "title": "Sang Tanpa Ujung"},
     {"id": "job2", "name": "Jalan Warisan", "desc": "Ambil job rahasia atau Legend", "kind": "job", "n": 1, "coins": 5000, "gems": 20, "title": "Pewaris"},
     {"id": "end", "name": "Akhir Cerita", "desc": "Tamatkan cerita utama", "kind": "ending", "n": 1, "coins": 50000, "gems": 100, "title": "Penjaga Greenwood"},
 ]
@@ -163,6 +166,8 @@ static func value(a: Dictionary) -> int:
             return _count_pos(Game.p.get("dungeons", {}))
         "castles":
             return _count_pos(Game.p.get("fast", {}))
+        "tower":
+            return int(Game.p.get("tower", 0))
         "job":
             var j: String = String(Game.p.get("job", ""))
             return 1 if (j in ["root_guard", "seal_weaver", "mist_shade", "wild_caller", "seed_brewer", "seed_bearer"]) else 0

@@ -73,6 +73,7 @@ var wanderer_biome := -1            # biome tempat Kelana Sunyi muncul hari ini 
 var atmos = null                   # siang-malam & cuaca (atmosphere.gd)
 var events = null                  # event dunia: Bulan Darah, meteor (world_events.gd)
 var blood_moon := false            # true saat Bulan Darah (dibaca enemy.gd: monster lebih galak, hadiah lebih besar)
+var _tower_next := false
 var dungeon = null                 # dungeon yang sedang dimasuki pemain (dungeon.gd) atau null
 var _return_pos := Vector2.ZERO    # posisi di dunia terbuka untuk kembali dari dungeon
 var _loading: CanvasLayer
@@ -744,9 +745,24 @@ func _spawn_cave_gates() -> void:
 		g.dungeon_id = String(did)
 		g.position = world.random_pos_in_biome(int(d["biome"]), world.spawn_point(), 900.0, rng)
 		entities.add_child(g)
+	if world.has_biome(1):                              # Menara Tanpa Ujung: dekat desa, hanya di dunia 1
+		var tg = CaveGateScript.new()
+		tg.dungeon_id = "menara"
+		tg.position = world.random_pos_in_biome(1, world.spawn_point(), 560.0, rng)
+		entities.add_child(tg)
+
+
+# Menara Tanpa Ujung: keluar lalu masuk lagi dengan lantai berikutnya (tower_cur sudah diatur dungeon.gd)
+func dungeon_next() -> void:
+	dungeon_leave()
+	_tower_next = true
+	dungeon_enter("menara")
+	_tower_next = false
 
 
 func dungeon_enter(did: String) -> void:
+	if did == "menara" and not _tower_next:
+		Game.p["tower_cur"] = int(Game.p.get("tower", 0)) + 1
 	if dungeon != null or player == null or player.dead or not DungeonScript.DEFS.has(did):
 		return
 	if Net.active:

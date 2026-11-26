@@ -722,6 +722,16 @@ func _build_settings() -> void:
     cl.button_pressed = bool(Game.settings["low_mode"])
     cl.toggled.connect(Perf.set_low_mode)
     vb.add_child(cl)
+    var cu := CheckBox.new()
+    cu.text = "Ultra hemat (efek minimal, paling ringan)"
+    cu.button_pressed = bool(Game.settings["ultra_mode"])
+    cu.toggled.connect(Perf.set_ultra_mode)
+    vb.add_child(cu)
+    var c3 := CheckBox.new()
+    c3.text = "Batasi 30 FPS (hemat baterai & tidak panas)"
+    c3.button_pressed = bool(Game.settings["cap30"])
+    c3.toggled.connect(Perf.set_cap30)
+    vb.add_child(c3)
     vb.add_child(HSeparator.new())
     var row := HBoxContainer.new()
     vb.add_child(row)
