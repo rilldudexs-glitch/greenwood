@@ -102,8 +102,8 @@ func _main():
 
 func _player():
 	var main = _main()
-	if main != null and "player" in main:
-		return main.player
+	if main != null:
+		return main.get("player")
 	return get_tree().get_first_node_in_group("player")
 
 
