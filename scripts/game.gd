@@ -79,7 +79,7 @@ func default_player() -> Dictionary:
 		"intro": false, "world2_unlocked": false, "world": 0, "clock": 240.0,
 		"secrets": {}, "kills": {},
 		"story": {"ch": 0, "on": false, "n": false, "k": {}, "v": {}}, "bosskills": {}, "dungeons": {}, "lore": {}, "bseen": {},
-		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0,
+		"fog": {}, "jurnal": {}, "plot": {}, "sq": {}, "fast": {}, "st": {}, "ach": {}, "title": "", "tower": 0, "ench": {}, "bst": {},
 	}
 
 
@@ -260,6 +260,26 @@ func save() -> void:
 		push_warning("Game.save(): gagal menyimpan (penyimpanan penuh?)")
 
 
+# Backup: salin save ke clipboard (bisa ditempel ke catatan/chat), lalu pulihkan dari clipboard di HP baru.
+func export_text() -> String:
+	save()
+	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if f == null:
+		return ""
+	return f.get_as_text()
+
+
+func import_text(text: String) -> bool:
+	var data = JSON.parse_string(text.strip_edges())
+	if typeof(data) != TYPE_DICTIONARY or not data.has("p") or typeof(data["p"]) != TYPE_DICTIONARY:
+		return false
+	if not data["p"].has("level") or not data["p"].has("name"):
+		return false
+	if not _atomic_write(SAVE_PATH, SAVE_TMP, SAVE_BAK, text.strip_edges()):
+		return false
+	return load_save()
+
+
 # Baca satu file save; kembalikan Dictionary valid, atau {} kalau rusak/tidak ada.
 func _read_save_file(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -368,7 +388,7 @@ func load_save() -> bool:
 				d["secrets"][str(k)] = v
 			else:
 				d["secrets"][str(k)] = int(v)
-	for dk in ["plot", "sq", "fast", "st", "ach"]:
+	for dk in ["plot", "sq", "fast", "st", "ach", "ench", "bst"]:
 		var dv = sp.get(dk, {})
 		if typeof(dv) == TYPE_DICTIONARY:
 			d[dk] = _deep_ints(dv)

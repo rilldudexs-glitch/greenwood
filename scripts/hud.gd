@@ -1048,6 +1048,9 @@ func _process(delta: float) -> void:
     if _disc_t >= 0.7:
         _disc_t = 0.0
         _discover_castles()
+        for bo in Prog.bestiary_check():
+            show_banner(String(bo["name"]), 3.0)
+            toast("+%d koin, +%d gem" % [int(bo["coins"]), int(bo["gems"])])
         for a in Prog.check():
             show_banner("Achievement: %s" % String(a["name"]), 3.0)
             toast("Gelar baru: %s (+%d koin)" % [String(a.get("title", "")), int(a.get("coins", 0))])

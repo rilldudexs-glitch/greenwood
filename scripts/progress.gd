@@ -69,7 +69,7 @@ static func st_mul(k: String) -> float:
         var e: Dictionary = n["mul"]
         if e.has(k):
             m += float(e[k]) * float(rank(String(n["id"])))
-    return m
+    return m * ench_mul(k)
 
 
 static func st_add(k: String) -> float:
@@ -201,3 +201,114 @@ static func title_text() -> String:
 
 static func set_title(id: String) -> void:
     Game.p["title"] = id if (id == "" or is_done(id)) else ""
+
+
+# ------------------------------------------------------------------ tempa (enchant) gear
+# Disimpan per item: Game.p["ench"] = {item_id: level}. Senjata +7%/level damage, armor +2% DEF & +1.5% HP per level (jumlah semua armor terpasang).
+const ENCH_MAX := 10
+
+
+static func ench_dict() -> Dictionary:
+    var d = Game.p.get("ench", {})
+    if typeof(d) != TYPE_DICTIONARY:
+        d = {}
+    Game.p["ench"] = d
+    return d
+
+
+static func ench(id: String) -> int:
+    return int(ench_dict().get(id, 0))
+
+
+static func armor_ench_total() -> int:
+    var n := 0
+    var eq = Game.p.get("equip", {})
+    if typeof(eq) == TYPE_DICTIONARY:
+        for s in eq.keys():
+            var id: String = String(eq[s])
+            if id != "":
+                n += ench(id)
+    return n
+
+
+static func ench_mul(k: String) -> float:
+    match k:
+        "melee":
+            return 1.0 + 0.07 * float(ench(String(Game.p.get("sword", ""))))
+        "magic":
+            return 1.0 + 0.07 * float(ench(String(Game.p.get("staff", ""))))
+        "def":
+            return 1.0 + 0.02 * float(armor_ench_total())
+        "hp":
+            return 1.0 + 0.015 * float(armor_ench_total())
+    return 1.0
+
+
+static func ench_cost(lv: int) -> Dictionary:
+    return {"coins": 400 * (lv + 1) * (lv + 1), "gems": 0 if lv < 5 else (lv - 3) * 2, "chance": 100 if lv < 5 else 100 - 10 * (lv - 4)}
+
+
+# Coba tempa satu item. Hasil: "max" | "kurang" | "sukses" | "gagal"
+static func ench_try(id: String) -> String:
+    var lv: int = ench(id)
+    if lv >= ENCH_MAX:
+        return "max"
+    var c: Dictionary = ench_cost(lv)
+    if int(Game.p.get("coins", 0)) < int(c["coins"]) or int(Game.p.get("gems", 0)) < int(c["gems"]):
+        return "kurang"
+    Game.p["coins"] = int(Game.p["coins"]) - int(c["coins"])
+    Game.p["gems"] = int(Game.p["gems"]) - int(c["gems"])
+    if randi() % 100 < int(c["chance"]):
+        ench_dict()[id] = lv + 1
+        return "sukses"
+    return "gagal"
+
+
+# ------------------------------------------------------------------ bestiary
+# Daftar monster per biome diambil dari Main.MOB_TABLE (di-load saat dipakai agar tidak terjadi referensi melingkar).
+static var _mobs: Dictionary = {}
+
+
+static func mob_table() -> Dictionary:
+    if _mobs.is_empty():
+        var m = load("res://scripts/main.gd")
+        _mobs = m.MOB_TABLE
+    return _mobs
+
+
+static func biome_names() -> Array:
+    return load("res://scripts/world.gd").BNAMES
+
+
+static func mob_label(kind: String) -> String:
+    return kind.replace("_", " ").capitalize()
+
+
+static func biome_progress(b: int) -> Vector2i:
+    var tbl: Dictionary = mob_table().get(b, {})
+    var seen := 0
+    for k in tbl.keys():
+        if int(Game.p.get("kills", {}).get(String(k), 0)) > 0:
+            seen += 1
+    return Vector2i(seen, tbl.size())
+
+
+static func bestiary_check() -> Array:
+    var out: Array = []
+    var done_b = Game.p.get("bst", {})
+    if typeof(done_b) != TYPE_DICTIONARY:
+        done_b = {}
+    Game.p["bst"] = done_b
+    for b in mob_table().keys():
+        var key := str(b)
+        if int(done_b.get(key, 0)) > 0:
+            continue
+        var pr: Vector2i = biome_progress(int(b))
+        if pr.y > 0 and pr.x >= pr.y:
+            done_b[key] = 1
+            var coins: int = 2000 * (int(b) + 1)
+            var gems: int = 5 + 2 * int(b)
+            Game.p["coins"] = int(Game.p.get("coins", 0)) + coins
+            Game.p["gems"] = int(Game.p.get("gems", 0)) + gems
+            out.append({"name": "Bestiary %s lengkap" % String(biome_names()[int(b)]), "coins": coins, "gems": gems})
+    return out

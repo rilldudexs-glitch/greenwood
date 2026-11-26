@@ -39,6 +39,12 @@ func _test_progress() -> void:
     check(fresh.size() >= 2 and Prog.is_done("lv10"), "achievement level tidak terbuka")
     Prog.set_title("lv10")
     check(Prog.title_text() == "Pemula", "gelar gagal")
+    check(Prog.mob_table().size() >= 10 and Prog.biome_names().size() >= 15, "bestiary tabel kosong")
+    Game.p["coins"] = 100000
+    Game.p["gems"] = 100
+    var sw: String = String(Game.p["sword"])
+    check(Prog.ench_try(sw) == "sukses" and Prog.ench(sw) == 1 and Prog.st_mul("melee") > 1.0, "tempa gagal")
+    check(Game.export_text() != "" and Game.import_text(Game.export_text()), "backup save gagal")
     var d = Dg.new()
     d.id = "menara"
     Game.p["tower_cur"] = 7
