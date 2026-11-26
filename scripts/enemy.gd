@@ -274,6 +274,7 @@ var radius := 10.0
 var bar_y := 20.0
 var xp_reward := 5
 var aggro := 120.0
+var territory_radius := 190.0
 var passive := false
 var spawn_pos := Vector2.ZERO
 var player
@@ -354,6 +355,7 @@ func _ready() -> void:
 		radius *= 1.5
 		bar_y *= 1.45
 		aggro += 60.0
+	_configure_territory()
 	var ngp: int = int(Game.p.get("ng", 0))             # New Game+: musuh makin kuat tiap putaran
 	if ngp > 0 and not passive:
 		max_hp = int(float(max_hp) * (1.0 + 0.6 * float(ngp)))
@@ -446,6 +448,62 @@ func _retarget(delta: float) -> void:
 	player = best
 
 
+
+# Tiap keluarga monster punya radius deteksi dan wilayah sendiri.
+# Monster biasa tidak akan mengejar pemain keluar dari lingkaran wilayah spawn.
+# Mini-boss tetap punya jangkauan lebih luas; boss utama memakai AI terpisah.
+func _configure_territory() -> void:
+	if is_mini:
+		territory_radius = 420.0
+		return
+	match archetype():
+		"slime":
+			aggro = 78.0
+			territory_radius = 150.0
+		"bee":
+			aggro = 95.0
+			territory_radius = 175.0
+		"snake":
+			aggro = 92.0
+			territory_radius = 175.0
+		"fiend":
+			aggro = 125.0
+			territory_radius = 230.0
+		"wisp":
+			aggro = 115.0
+			territory_radius = 220.0
+		"goblin":
+			aggro = 105.0
+			territory_radius = 210.0
+		"spider":
+			aggro = 92.0
+			territory_radius = 170.0
+		"ogre", "red_ogre", "bear":
+			aggro = 88.0
+			territory_radius = 210.0
+		"golem":
+			aggro = 82.0
+			territory_radius = 190.0
+		"wolf":
+			aggro = 82.0
+			territory_radius = 220.0
+		"kobold":
+			aggro = 100.0
+			territory_radius = 200.0
+		"bat":
+			aggro = 110.0
+			territory_radius = 210.0
+		"mummy":
+			aggro = 95.0
+			territory_radius = 185.0
+		"centipede":
+			aggro = 105.0
+			territory_radius = 195.0
+		_:
+			aggro = minf(aggro, 110.0)
+			territory_radius = 190.0
+
+
 func archetype() -> String:
 	return String(BASE[kind].get("base_kind", kind))
 
@@ -533,7 +591,9 @@ func _physics_process(delta: float) -> void:
 		var to: Vector2 = player.global_position - global_position
 		var dist: float = to.length()
 		var safe: bool = world != null and world.in_village(player.global_position)
-		if dist < aggro and not safe:
+		# Monster hanya bereaksi di wilayah asalnya; pemain yang keluar wilayah memutus pengejaran.
+		var inside_territory: bool = player.global_position.distance_to(spawn_pos) <= territory_radius
+		if dist < aggro and inside_territory and not safe:
 			alert = true
 			vel = _behave(to, dist, spd, delta)
 	if passive and _flee > 0.0 and player:
@@ -548,7 +608,7 @@ func _physics_process(delta: float) -> void:
 			_wander_t = randf_range(1.0, 3.0)
 			_wander_dir = Vector2.from_angle(randf() * TAU) if randf() < 0.6 else Vector2.ZERO
 			# jangan menjauh dari tempat lahir
-			if global_position.distance_to(spawn_pos) > 140.0:
+			if global_position.distance_to(spawn_pos) > 90.0:
 				_wander_dir = (spawn_pos - global_position).normalized()
 		vel = _wander_dir * spd * 0.4
 	if _lunge > 0.0:
