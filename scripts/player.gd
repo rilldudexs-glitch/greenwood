@@ -192,10 +192,15 @@ func recalc() -> void:
 
 
 func add_stat(k: String) -> bool:
-	if int(Game.p["points"]) <= 0:
+	return add_stat_amount(k, 1)
+
+
+func add_stat_amount(k: String, amount: int) -> bool:
+	var count: int = clampi(amount, 0, int(Game.p["points"]))
+	if count <= 0 or not Game.p["stats"].has(k):
 		return false
-	Game.p["points"] = int(Game.p["points"]) - 1
-	Game.p["stats"][k] = stat(k) + 1
+	Game.p["points"] = int(Game.p["points"]) - count
+	Game.p["stats"][k] = stat(k) + count
 	var oh: int = max_hp
 	var om: int = max_mp
 	recalc()
