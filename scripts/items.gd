@@ -1,6 +1,7 @@
 extends Node
 
 const Bal = preload("res://scripts/balance.gd")
+const GearS = preload("res://scripts/gear.gd")
 # Autoload "Items": database item, resep crafting, pedang/tongkat/armor, skin & gacha.
 
 const RAR_COL := [Color(0.8, 0.8, 0.85), Color(0.45, 0.7, 1.0), Color(0.75, 0.5, 1.0), Color(1.0, 0.8, 0.25)]
@@ -28,6 +29,7 @@ func _init() -> void:
     _build_skins()
     _build_misc_recipes()
     _build_biome_items()
+    _build_biome_gear_recipes()
 
 
 func make_entry(id: String, nm: String, type: String, col: Color, price: int, desc: String = "", extra: Dictionary = {}) -> Dictionary:
@@ -292,6 +294,32 @@ const BIOME_DROPS := {
     14: [["bi_14_a", 0.20], ["bi_14_b", 0.07]],
     15: [["bi_15_a", 0.20], ["bi_15_b", 0.07]],
 }
+
+
+# Gear khas biome (Epic) yang bisa dibuat dari bahan biome itu: alasan nyata untuk berburu di satu biome.
+# Syarat level mengikuti gear (lihat Gear._req_level). Bahan biome jatuh dari monster biome tersebut (BIOME_DROPS).
+@warning_ignore("integer_division")
+func _build_biome_gear_recipes() -> void:
+    var kinds := ["sword", "bow", "axe", "hammer"]
+    var armor_cost := {"chest": [20, 8], "legs": [15, 6], "boots": [10, 4], "gloves": [10, 4], "shield": [14, 6]}
+    for b in range(1, 15):
+        var stage: int = maxi(b - 4, 0)
+        var rid: int = 3 + stage * 10
+        var a: String = "bi_%d_a" % b
+        var bb: String = "bi_%d_b" % b
+        var base_coins: int = maxi(Bal.biome_min_lv(b), 5) * 25
+        var kind: String = kinds[b % 4]
+        var n: int = int(GearS.W_COUNT[kind])
+        var tier: int = 4 if b > 4 else clampi(b - 1, 0, 4)
+        var lo: int = tier * n / 5
+        var hi: int = maxi((tier + 1) * n / 5, lo + 1)
+        var widx: int = lo + (b % (hi - lo))
+        recipes.append({"out": "gw_%s_%d_%d" % [kind, widx, rid], "n": 1, "mats": {a: 24, bb: 10}, "coins": base_coins * 2, "cat": "weapon"})
+        var set_id: String = String(GearS.BIOME_SET[b]) if b <= 4 else String(GearS.BIOME_SET_EXT.get(b, "volcano"))
+        var aidx: int = 12 + (b % 6 if b <= 4 else (b - 5) % 6)
+        for slot in armor_cost.keys():
+            var c: Array = armor_cost[slot]
+            recipes.append({"out": "ga_%s_%s_%d_%d" % [set_id, slot, aidx, rid], "n": 1, "mats": {a: int(c[0]), bb: int(c[1])}, "coins": base_coins, "cat": "armor"})
 
 
 func biome_drops(b: int) -> Array:
