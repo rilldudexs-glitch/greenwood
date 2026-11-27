@@ -330,6 +330,15 @@ func _spawn_npcs() -> void:
 	for ci in world.castles.size():
 		var cs: Dictionary = world.castles[ci]
 		_add_npc("bm_%d" % int(cs["biome"]), world.find_open(Vector2i(int(cs["x"]) + int(cs["w"]) / 2 + 3, int(cs["y"]) + int(cs["h"]) + 2)))
+		# Penghuni kastil: dua penjaga mengapit gerbang, satu ksatria; raja dan putri di kastil pertama
+		var gx: int = int(cs["x"]) + int(cs["w"]) / 2
+		var gy: int = int(cs["y"]) + int(cs["h"]) + 2
+		_add_npc("c_guard", world.find_open(Vector2i(gx - 3, gy)))
+		_add_npc("c_guard", world.find_open(Vector2i(gx + 6, gy)))
+		_add_npc("c_knight", world.find_open(Vector2i(gx - 6, gy + 2)))
+		if ci == 0:
+			_add_npc("c_king", world.find_open(Vector2i(gx - 1, gy + 3)))
+			_add_npc("c_queen", world.find_open(Vector2i(gx + 3, gy + 3)))
 	for i in 10:
 		_add_npc("villager", world.random_pos_in_biome(0))
 	# Penduduk di tiap perumahan/gubuk luar desa: satu warga per rumah di perumahan, separuh gubuk dihuni.

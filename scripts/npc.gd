@@ -78,9 +78,11 @@ const LINES := [
     ["Kamu terlihat kuat! Sudah mencoba Katana Ronin? Kritisnya mantap.", "Bahannya besi dan kulit."],
 ]
 # Sprite tiap NPC (file assets/sprites/h_<id>.png). Warga biasa memakai salah satu dari VILLAGERS.
-const SPRITE_ID := {"elder": "m07", "merchant": "m04", "smith": "m12", "healer": "f05", "gacha": "f04",
-    "fisher": "m13", "miner": "m11", "lumber": "m10", "marni": "f17", "sahar": "m08", "zahra": "f08", "gatekeeper": "m07", "wanderer": "m14"}
-const VILLAGERS := ["m03", "m10", "m13", "m14", "f17", "f18", "f20", "f11", "f19", "m01"]
+const SPRITE_ID := {"elder": "n_tetua", "merchant": "n_pedagang", "smith": "n_alkemis", "healer": "n_tabib", "gacha": "n_madam",
+    "fisher": "n_pemancing", "miner": "n_penambang", "lumber": "n_biasa", "marni": "n_putri", "sahar": "n_kesatria", "zahra": "n_madam",
+    "gatekeeper": "n_penjaga", "wanderer": "n_pengemis", "c_king": "n_raja", "c_queen": "n_putri", "c_guard": "n_penjaga", "c_knight": "n_kesatria"}
+const VILLAGERS := ["n_biasa", "n_anak", "n_madam", "n_pengemis", "n_penambang", "n_pemancing", "n_biasa", "n_anak", "n_madam", "n_alkemis"]
+const VILLAGERS_F := ["n_madam", "n_anak", "n_putri"]
 const PALETTES := [Color(0.85, 0.35, 0.3), Color(0.3, 0.55, 0.85), Color(0.35, 0.7, 0.4), Color(0.9, 0.7, 0.25), Color(0.7, 0.4, 0.75), Color(0.9, 0.55, 0.3), Color(0.5, 0.5, 0.55)]
 
 var role := "villager"
@@ -172,6 +174,20 @@ func _ready() -> void:
                 gender = String(bd["g"])
                 var bc: Array = bd["skin"]
                 skin = {"theme": "adv", "rarity": 0, "c1": bc[0], "c2": bc[1], "c3": bc[2]}
+            elif role.begins_with("c_"):
+                match role:
+                    "c_king":
+                        npc_name = "Raja Aldric"
+                        lines = ["Selamat datang di istanaku, pengelana.", "Kerajaan ini aman selama pahlawan seperti dirimu masih berjalan di negeri ini."]
+                    "c_queen":
+                        npc_name = "Putri Elara"
+                        lines = ["Ayahku selalu bilang, keberanian itu soal terus melangkah.", "Aku suka melihat para petualang pulang dengan selamat."]
+                    "c_knight":
+                        npc_name = "Ksatria Kerajaan"
+                        lines = ["Aku bersumpah melindungi kastil ini.", "Monster di luar sana makin liar. Jaga dirimu."]
+                    _:
+                        npc_name = "Penjaga Kastil"
+                        lines = ["Berhenti! ...Oh, kamu pahlawan itu. Silakan lewat.", "Gerbang ini kujaga siang dan malam."]
             elif Sidequests.is_role(role):
                 var sd: Array = Sidequests.NPC[Sidequests.biome_of(role)]
                 npc_name = String(sd[0])
@@ -258,6 +274,10 @@ func _sprite_id() -> String:
         return String(VILLAGERS[Sidequests.biome_of(role) % VILLAGERS.size()])
     if SPRITE_ID.has(role):
         return String(SPRITE_ID[role])
+    if role.begins_with("bm_"):
+        return "n_penyihir"
+    if gender == "f":
+        return String(VILLAGERS_F[int(get_instance_id()) % VILLAGERS_F.size()])
     return String(VILLAGERS[int(get_instance_id()) % VILLAGERS.size()])
 
 

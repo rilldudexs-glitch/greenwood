@@ -41,6 +41,8 @@ static func tex(path: String) -> Texture2D:
 # Path sheet sprite manusia (96x128: 3 kolom langkah x 4 baris arah bawah/kiri/kanan/atas)
 static func _human_sheet(o: Dictionary) -> String:
 	if o.has("sprite_id"):
+		if String(o["sprite_id"]).begins_with("n_"):
+			return SPR_DIR + String(o["sprite_id"]) + ".png"
 		return SPR_DIR + "h_" + String(o["sprite_id"]) + ".png"
 	var sk: Dictionary = o["skin"]
 	var pair: Array = SKIN_SPR.get(String(sk.get("id", "skin_default")), SKIN_SPR["skin_default"])
@@ -49,6 +51,23 @@ static func _human_sheet(o: Dictionary) -> String:
 
 
 static func _human_sprite(ci: CanvasItem, stx: Texture2D, o: Dictionary, dir: int, flip: bool, mv: bool, ph: float, bob: float, held: Dictionary, hand: Vector2, wa: float, t: float, base: Transform2D, sc: float) -> void:
+	if stx.get_width() == 256 and stx.get_height() == 64:
+		# sheet NPC baru: 4 sel 64x64 (bawah, kiri, kanan, atas); langkah = loncat kecil
+		var ci2: int = 0
+		if dir == 1:
+			ci2 = 3
+		elif dir == 2:
+			ci2 = 1 if flip else 2
+		var hop: float = -absf(sin(ph * 0.55)) * 1.6 if mv else 0.0
+		if dir == 1 and not held.is_empty():
+			draw_held(ci, held, hand, wa, t, base)
+		var off2: Vector2 = o.get("offset", Vector2.ZERO)
+		ci.draw_set_transform_matrix(Transform2D(0.0, Vector2(sc, sc), 0.0, off2))
+		ci.draw_texture_rect_region(stx, Rect2(-17.0, -22.4 + bob + hop, 34.0, 34.0), Rect2(ci2 * 64, 0, 64, 64))
+		if dir != 1 and not held.is_empty():
+			draw_held(ci, held, hand, wa, t, base)
+		ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+		return
 	var row: int = 0
 	if dir == 1:
 		row = 3
