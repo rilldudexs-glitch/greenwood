@@ -154,7 +154,7 @@ const MOB_SKIN := {
 	"lost_archer": {"src": "skeleton_archer", "size": 42.0},
 	"ancient_mummy": {"src": "undead_soldier", "size": 48.0},
 	"lumin_ray": {"src": "manta_ray", "size": 42.0, "fly": true},
-	"reef_guardian": {"src": "crystal_crab", "size": 44.0},
+	"reef_guardian": {"src": "lumina_guardian", "size": 66.0},
 	"pearl_wisp": {"src": "bubble_wisp", "size": 42.0, "fly": true},
 	"coral_stalker": {"src": "coral_crab", "size": 45.0},
 	"tide_serpent": {"src": "sea_serpent", "size": 45.0},
