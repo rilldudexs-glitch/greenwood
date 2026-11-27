@@ -111,6 +111,13 @@ class CharPanel extends Control:
         _head.text = "Pohon Skill  -  Poin: %d" % Prog.free_points()
         var sk: Dictionary = Jobs.skill()
         var sname: String = String(sk.get("name", "Tebasan Memutar"))
+        var lst := ""
+        for i in 5:
+            var si: Dictionary = Jobs.skill_at(i)
+            if si.is_empty():
+                continue
+            lst += "\n%d. %s (Lv %d)" % [i + 1, String(si.get("name", "?")), Jobs.unlock_lv(i)]
+        _list.add_child(_label("Skill job:" + lst, 13, Color(0.85, 0.9, 1.0)))
         _list.add_child(_label("%s - skill: %s\nPoin: 1 per %d level (sampai lv %d), lalu 1 per %d level. Maks %d rank per cabang." % [Jobs.name_of(Jobs.cur()), sname, Prog.PTS_DIV, Prog.PTS_SLOW_FROM, Prog.PTS_SLOW_DIV, Prog.MAX_RANK], 13, Color(0.75, 0.8, 0.9)))
         for n in Prog.NODES:
             var id: String = String(n["id"])
