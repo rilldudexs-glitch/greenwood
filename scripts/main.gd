@@ -332,6 +332,15 @@ func _spawn_npcs() -> void:
 		_add_npc("bm_%d" % int(cs["biome"]), world.find_open(Vector2i(int(cs["x"]) + int(cs["w"]) / 2 + 3, int(cs["y"]) + int(cs["h"]) + 2)))
 	for i in 10:
 		_add_npc("villager", world.random_pos_in_biome(0))
+	# Penduduk di tiap perumahan/gubuk luar desa: satu warga per rumah di perumahan, separuh gubuk dihuni.
+	var hr := RandomNumberGenerator.new()
+	hr.seed = int(Game.world_seed) + 9393 + world.world_id * 11
+	for hs2 in world.houses:
+		if not hs2.has("biome"):
+			continue
+		if String(hs2["kind"]) == "hut" and hr.randf() < 0.5:
+			continue
+		_add_npc("villager", world.find_open(Vector2i(int(hs2["x"]) + 2, int(hs2["y"]) + 5)))
 	# Penduduk di desa-desa kecil World 1 dan World 2.
 	for b in range(5, 15):
 		if not world.has_biome(b):

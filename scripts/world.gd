@@ -748,7 +748,7 @@ func _wind_road(a: Vector2, b: Vector2, amp: float, seed_i: int, rng: RandomNumb
 # Gubuk tunggal dan perumahan kecil di hutan/gurun/salju (tidak di gunung api), disambung jalan setapak
 func _place_outposts(rng: RandomNumberGenerator) -> void:
     # [biome, jumlah perumahan, jumlah gubuk]
-    var plan := [[1, 3, 7], [2, 2, 4], [3, 2, 4], [5, 2, 4], [6, 1, 3], [7, 1, 3], [8, 2, 4], [9, 2, 4], [10, 2, 4], [11, 2, 4], [12, 2, 4], [13, 2, 4], [14, 2, 4], [15, 2, 4]]
+    var plan := [[1, 6, 8], [2, 4, 6], [3, 4, 6], [5, 4, 5], [6, 3, 4], [7, 3, 4], [8, 4, 5], [9, 4, 5], [10, 4, 5], [11, 4, 5], [12, 4, 5], [13, 4, 5], [14, 4, 5], [15, 4, 5]]
     var taken: Array = []
     for lr in LAIRS:
         taken.append(lr["cell"])
@@ -762,7 +762,7 @@ func _place_outposts(rng: RandomNumberGenerator) -> void:
         var mult: int = 2 if b >= 5 else 1       # biome ekspansi lebih luas -> lebih banyak pos
         for k in (int(pr[1]) + int(pr[2])) * mult:
             var hamlet: bool = k < int(pr[1]) * mult
-            var n_house: int = rng.randi_range(3, 4) if hamlet else 1
+            var n_house: int = rng.randi_range(3, 6) if hamlet else 1
             var site: Vector2i = _find_site(b, n_house, taken, rng)
             if site.x < 0:
                 continue
@@ -782,7 +782,7 @@ func _find_site(b: int, n_house: int, taken: Array, rng: RandomNumberGenerator) 
             continue
         var ok := true
         for t in taken:
-            if Vector2(c - Vector2i(t)).length() < 24.0:
+            if Vector2(c - Vector2i(t)).length() < 20.0:
                 ok = false
                 break
         if not ok:
