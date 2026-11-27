@@ -25,7 +25,7 @@ const MUSIC := ["village", "forest", "desert", "snow", "volcano", "shadow", "und
 const MAP_COL := [Color(0.6,0.42,0.25), Color(0.25,0.55,0.25), Color(0.88,0.74,0.42), Color(0.85,0.92,1.0), Color(0.6,0.2,0.15), Color(0.12,0.10,0.20), Color(0.38,0.32,0.52), Color(0.08,0.16,0.24), Color(0.22,0.48,0.25), Color(0.88,0.48,0.62), Color(0.55,0.32,0.68), Color(0.28,0.55,0.72), Color(0.42,0.36,0.28), Color(0.25,0.78,0.82), Color(0.36,0.62,0.32), Color(0.32,0.30,0.78)]
 const BIOME_MULT := [1.0, 1.0, 1.7, 2.6, 3.8, 4.5, 5.0, 5.5, 4.2, 4.0, 4.8, 6.0, 6.5, 7.0, 7.5, 8.0]
 
-enum K { GROUND, DIRT, PLAZA, WATER, TREE, BUSH, ROCK, HOUSE, STUMP }
+enum K { GROUND, DIRT, PLAZA, WATER, TREE, BUSH, ROCK, HOUSE, STUMP, CLIFF }
 
 # Sarang bos World 1 (koordinat absolut; digeser dari peta lama 256x192 ke pusat baru)
 const LAIRS_W1 := [
@@ -54,6 +54,7 @@ const PLOTS := [
 var kind := PackedByteArray()
 var biome := PackedByteArray()
 var ore := {}            # idx -> id bijih (untuk ROCK)
+var hill := PackedByteArray()   # 1 = dataran tinggi (hanya hiasan, tetap bisa dilewati)
 var hits := {}           # idx -> sisa pukulan
 var regrow := {}         # idx -> {"t": detik, "to": K}
 var houses: Array = []
@@ -138,7 +139,7 @@ func get_kind(c: Vector2i) -> int:
 
 
 func is_solid_kind(k: int) -> bool:
-    return k == K.WATER or k == K.TREE or k == K.BUSH or k == K.ROCK or k == K.HOUSE
+    return k == K.WATER or k == K.TREE or k == K.BUSH or k == K.ROCK or k == K.HOUSE or k == K.CLIFF
 
 
 func is_solid_cell(c: Vector2i) -> bool:
@@ -467,6 +468,80 @@ func _generate() -> void:
         for x in W:
             if x < 2 or y < 2 or x >= W - 2 or y >= H - 2:
                 kind[idx(x, y)] = K.TREE
+    _place_hills()
+    _place_ridges()
+
+
+# ------------------------------------------------------------------ bukit & tebing
+# Sel yang aman dipakai untuk relief: bukan jalan/rumah/air/alun-alun di sekitarnya dan jauh dari desa, portal, sarang bos.
+func _relief_ok(x: int, y: int, margin: int) -> bool:
+    if x < 6 or y < 6 or x >= W - 6 or y >= H - 6:
+        return false
+    if Vector2(x - CENTER.x, y - CENTER.y).length() < 24.0:
+        return false
+    if biome[idx(x, y)] == 0 or _in_safe_zone(x, y):
+        return false
+    var pc: Vector2i = portal_cell()
+    if Vector2(x - pc.x, y - pc.y).length() < 12.0:
+        return false
+    for lr in LAIRS:
+        var lc: Vector2i = lr["cell"]
+        if Vector2(x - lc.x, y - lc.y).length() < 12.0:
+            return false
+    for dy in range(-margin, margin + 1):
+        for dx in range(-margin, margin + 1):
+            var k: int = kind[idx(x + dx, y + dy)]
+            if k == K.DIRT or k == K.PLAZA or k == K.HOUSE or k == K.WATER or k == K.CLIFF:
+                return false
+    return true
+
+
+# Dataran tinggi (hiasan): bercak bukit dari noise; sisi selatan tampak seperti tebing, tapi tetap bisa dilewati.
+func _place_hills() -> void:
+    hill = PackedByteArray()
+    hill.resize(W * H)
+    var nz := FastNoiseLite.new()
+    nz.seed = sd + 41
+    nz.frequency = 0.04
+    for y in range(6, H - 6):
+        for x in range(6, W - 6):
+            if nz.get_noise_2d(x, y) > 0.34 and _relief_ok(x, y, 1):
+                hill[idx(x, y)] = 1
+
+
+# Punggung tebing (menghalangi): tembok pendek 2 baris dengan celah, supaya peta terasa bertingkat tanpa menutup jalan.
+func _place_ridges() -> void:
+    var rr := RandomNumberGenerator.new()
+    rr.seed = sd + 77
+    var placed := 0
+    var tries := 0
+    while placed < 130 and tries < 4000:
+        tries += 1
+        var x0: int = rr.randi_range(8, W - 9)
+        var y0: int = rr.randi_range(8, H - 9)
+        var horiz: bool = rr.randf() < 0.7
+        var ln: int = rr.randi_range(9, 16) if horiz else rr.randi_range(5, 8)
+        var gap: int = ln / 2
+        var cells: Array = []
+        var ok := true
+        for i in ln:
+            if i == gap or i == gap + 1:
+                continue
+            var yy: int = y0 + int(round(sin(float(i) * 0.5 + float(x0)) * 1.0)) if horiz else y0 + i
+            var xx: int = x0 + i if horiz else x0
+            if not _relief_ok(xx, yy, 3) or (horiz and not _relief_ok(xx, yy + 1, 3)):
+                ok = false
+                break
+            cells.append(Vector2i(xx, yy))
+            if horiz:
+                cells.append(Vector2i(xx, yy + 1))
+        if not ok:
+            continue
+        for c in cells:
+            var ci: int = idx(c.x, c.y)
+            kind[ci] = K.CLIFF
+            ore.erase(ci)
+        placed += 1
 
 
 # ------------------------------------------------------------------ kastil / kerajaan
@@ -1244,6 +1319,8 @@ func make_minimap() -> ImageTexture:
                     c = Color(0.9, 0.3, 0.25)
                 K.ROCK:
                     c = Color(0.5, 0.5, 0.55)
+                K.CLIFF:
+                    c = Color(0.42, 0.4, 0.38)
             img.set_pixel(x, y, c)
     return ImageTexture.create_from_image(img)
 
@@ -1359,6 +1436,11 @@ func _draw_cell(ci: CanvasItem, x: int, y: int) -> void:
             var nb: int = biome[idx(nx, ny)]
             if nb != b and nb != 0 and b != 0 and (hv + d.x * 3 + d.y * 5) % 3 == 0:
                 ci.draw_texture(textures[nb]["ground"], pos, Color(1, 1, 1, 0.7))
+    if k == K.CLIFF:
+        _draw_cliff(ci, x, y, pos, b, hv)
+        return
+    if hill.size() == W * H and hill[i] == 1:
+        _draw_hill(ci, x, y, pos, b, hv)
     match k:
         K.GROUND, K.STUMP:
             _decor(ci, b, pos, hv)
@@ -1373,6 +1455,52 @@ func _draw_cell(ci: CanvasItem, x: int, y: int) -> void:
             Art.draw_rock(ci, pos + Vector2(16, 17), String(ore.get(i, "stone")), IDS[b], hv / 3)
         K.HOUSE:
             pass
+
+
+func _is_hill(x: int, y: int) -> bool:
+    return x >= 0 and y >= 0 and x < W and y < H and hill.size() == W * H and hill[idx(x, y)] == 1
+
+
+# Dataran tinggi: permukaan lebih terang, bibir terang di utara, dinding tebing di selatan, bayangan di sisi barat/timur.
+func _draw_hill(ci: CanvasItem, x: int, y: int, pos: Vector2, b: int, hv: int) -> void:
+    ci.draw_rect(Rect2(pos, Vector2(TILE, TILE)), Color(1.0, 0.98, 0.85, 0.10))
+    var base: Color = MAP_COL[b]
+    if not _is_hill(x, y - 1):
+        ci.draw_rect(Rect2(pos.x, pos.y, TILE, 2), Color(1, 1, 0.9, 0.35))
+    if not _is_hill(x - 1, y):
+        ci.draw_rect(Rect2(pos.x, pos.y, 2, TILE), Color(1, 1, 0.9, 0.2))
+    if not _is_hill(x + 1, y):
+        ci.draw_rect(Rect2(pos.x + TILE - 3, pos.y, 3, TILE), Color(0, 0, 0, 0.16))
+    if not _is_hill(x, y + 1):
+        var face: Color = base.darkened(0.5)
+        ci.draw_rect(Rect2(pos.x, pos.y + TILE - 10, TILE, 10), face)
+        ci.draw_rect(Rect2(pos.x, pos.y + TILE - 10, TILE, 2), base.lightened(0.25))
+        ci.draw_rect(Rect2(pos.x, pos.y + TILE - 2, TILE, 2), Color(0, 0, 0, 0.35))
+        for j in 3:
+            var cx: float = pos.x + float((hv >> (j * 3)) % 26) + 3.0
+            ci.draw_line(Vector2(cx, pos.y + TILE - 8), Vector2(cx, pos.y + TILE - 3), face.darkened(0.3), 1.0)
+
+
+# Tebing penghalang: tembok batu 2 baris. Baris atas = permukaan, baris bawah = dinding bergaris.
+func _draw_cliff(ci: CanvasItem, x: int, y: int, pos: Vector2, b: int, hv: int) -> void:
+    var base: Color = MAP_COL[b].lerp(Color(0.5, 0.48, 0.45), 0.55)
+    var top_open: bool = get_kind(Vector2i(x, y - 1)) != K.CLIFF
+    var bot_open: bool = get_kind(Vector2i(x, y + 1)) != K.CLIFF
+    var v: float = 0.9 + float(hv % 100) / 100.0 * 0.2
+    var col: Color = base * Color(v, v, v, 1.0)
+    ci.draw_rect(Rect2(pos, Vector2(TILE, TILE)), col.darkened(0.15) if not top_open else col.lightened(0.12))
+    if top_open:
+        ci.draw_rect(Rect2(pos.x, pos.y, TILE, 3), Color(1, 1, 0.92, 0.35))
+    else:
+        for j in 4:
+            var cx: float = pos.x + float(j * 8) + float((hv >> j) % 5) + 2.0
+            ci.draw_line(Vector2(cx, pos.y + 2), Vector2(cx, pos.y + TILE - 2), col.darkened(0.35), 2.0)
+    if get_kind(Vector2i(x - 1, y)) != K.CLIFF:
+        ci.draw_rect(Rect2(pos.x, pos.y, 3, TILE), Color(1, 1, 0.92, 0.18))
+    if get_kind(Vector2i(x + 1, y)) != K.CLIFF:
+        ci.draw_rect(Rect2(pos.x + TILE - 3, pos.y, 3, TILE), Color(0, 0, 0, 0.3))
+    if bot_open:
+        ci.draw_rect(Rect2(pos.x, pos.y + TILE - 4, TILE, 4), Color(0, 0, 0, 0.4))
 
 
 func _draw_obj(ci: CanvasItem, t: Texture2D, pos: Vector2) -> void:
