@@ -3,6 +3,7 @@ extends CanvasLayer
 # banner, toast, bar bos. Menu lengkap (tas, status, crafting, skin, toko, setelan) ada di menu.gd.
 
 const Art = preload("res://scripts/art.gd")
+const Aros = preload("res://scripts/aros.gd")
 const MenuScript = preload("res://scripts/menu.gd")
 const StickScript = preload("res://scripts/touch_stick.gd")
 const K = preload("res://scripts/ui_kit.gd")
@@ -67,6 +68,7 @@ var _touch := false
 # ------------------------------------------------------------------ gambar HUD
 class Overlay extends Control:
     const A = preload("res://scripts/art.gd")
+    const Aros = preload("res://scripts/aros.gd")
     const Story = preload("res://scripts/story.gd")
     const K = preload("res://scripts/ui_kit.gd")
     const SP := 0.6      # skala PNG aset terhadap sheet asli
@@ -178,23 +180,25 @@ class Overlay extends Control:
         _tn(str(int(Game.p["coins"])), Vector2(6.0 + 60.0 * KS, cy + 5.0), 13, Color(1.0, 0.9, 0.5), 140.0 * KS, HORIZONTAL_ALIGNMENT_RIGHT)
         var gx: float = 6.0 + 222.0 * KS + 6.0
         _sp(t_pblank, Vector2(gx, py), KS)
-        A.draw_currency(self, "gem", Vector2(gx + 30.0 * KS, cy), 6.5)
+        draw_texture_rect(Aros.tex("ruby"), Rect2(Vector2(gx + 30.0 * KS - 11.0, cy - 11.0), Vector2(22, 22)), false)
         _tn(str(int(Game.p["gems"])), Vector2(gx + 60.0 * KS, cy + 5.0), 13, Color(0.6, 0.95, 1.0), 140.0 * KS, HORIZONTAL_ALIGNMENT_RIGHT)
         # --- quest
         var qy: float = py + 73.0 * KS + 4.0
         var q: Dictionary = Game.p["quest"]
         if q["type"] != "none":
             _panel(Rect2(6, qy, 232, 46))
-            _t("Quest: " + String(q["label"]), Vector2(20, qy + 19), 10, Color(1, 0.95, 0.7), 206.0)
+            draw_texture_rect(Aros.tex("scroll"), Rect2(Vector2(10, qy + 11), Vector2(24, 24)), false)
+            _t("Quest: " + String(q["label"]), Vector2(38, qy + 19), 10, Color(1, 0.95, 0.7), 190.0)
             var done: bool = int(q["have"]) >= int(q["need"])
-            _t(("Selesai! Temui Tetua Oren" if done else "%d / %d" % [int(q["have"]), int(q["need"])]), Vector2(20, qy + 35), 11, Color(0.5, 1, 0.5) if done else Color.WHITE)
+            _t(("Selesai! Temui Tetua Oren" if done else "%d / %d" % [int(q["have"]), int(q["need"])]), Vector2(38, qy + 35), 11, Color(0.5, 1, 0.5) if done else Color.WHITE)
         # --- kisah utama (di bawah quest harian)
         if not Story.finished() and Story.accepted():
             var sy: float = qy + (50.0 if q["type"] != "none" else 0.0)
             _panel(Rect2(6, sy, 232, 46))
-            _t("Kisah: " + String(Story.cur()["title"]), Vector2(20, sy + 19), 10, Color(1, 0.75, 0.4), 206.0)
+            draw_texture_rect(Aros.tex("book"), Rect2(Vector2(10, sy + 11), Vector2(24, 24)), false)
+            _t("Kisah: " + String(Story.cur()["title"]), Vector2(38, sy + 19), 10, Color(1, 0.75, 0.4), 190.0)
             var sdone: bool = Story.is_complete()
-            _t(Story.short_text(), Vector2(20, sy + 35), 11, Color(0.5, 1, 0.5) if sdone else Color.WHITE, 206.0)
+            _t(Story.short_text(), Vector2(38, sy + 35), 11, Color(0.5, 1, 0.5) if sdone else Color.WHITE, 190.0)
         # --- minimap (kanan atas, di kiri tombol jeda / gigi)
         if hud.minimap_tex and t_map != null:
             var fsz: Vector2 = t_map.get_size() * KS / SP
@@ -318,6 +322,7 @@ class Overlay extends Control:
 
 class Btn extends Control:
     const A = preload("res://scripts/art.gd")
+    const Aros = preload("res://scripts/aros.gd")
     const K = preload("res://scripts/ui_kit.gd")
     const JobsS = preload("res://scripts/jobs.gd")
     signal pressed
@@ -396,7 +401,9 @@ class Btn extends Control:
         if kind == "potion_hp" or kind == "potion_mp":
             if held:
                 draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.22), true)
-            A.draw_hud_icon(self, kind, c + Vector2(0, -2), r * 0.85)
+            var pic: String = "potion" if kind == "potion_hp" else "drop"
+            var ps: float = r * 1.5
+            draw_texture_rect(Aros.tex(pic), Rect2(c + Vector2(-ps / 2.0, -ps / 2.0 - 3.0), Vector2(ps, ps)), false, tint)
             if pl:
                 var n: int = pl.count(kind)
                 draw_string_outline(f, Vector2(0, size.y - 4), "x%d" % n, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 4, int(12.0 * r / 23.0), 4, Color.BLACK)
@@ -449,6 +456,9 @@ class Btn extends Control:
         _circle(K.tex("hud_btn_round"), c, r, tint)
         if kind == "sword":
             A.draw_hud_icon(self, "sword", c, r * 0.95, pl.sword() if pl else {})
+        elif kind == "hand":
+            var hs: float = r * 1.25
+            draw_texture_rect(Aros.tex("hands"), Rect2(c - Vector2(hs, hs) / 2.0, Vector2(hs, hs)), false, tint)
         else:
             A.draw_hud_icon(self, kind, c, r * 0.9)
         if kind == "hand" and pl:
