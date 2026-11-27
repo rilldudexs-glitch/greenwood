@@ -655,6 +655,55 @@ func _build_castle(site: Vector2i, cw: int, ch: int, vis_h: int, b: int, rng: Ra
     _castle_deco(site, cw, ch, vis_h, b)
 
 
+var _edge_cache := {}
+
+
+# Warna rata-rata tepi bawah sprite (untuk menyatukan alas bangunan dengan tanah)
+func _edge_col(t: Texture2D, fallback: Color) -> Color:
+    if t == null:
+        return fallback
+    if _edge_cache.has(t):
+        return _edge_cache[t]
+    var col: Color = fallback
+    var img: Image = t.get_image()
+    if img != null and not img.is_empty():
+        if img.is_compressed():
+            img.decompress()
+        var r := Vector3.ZERO
+        var n := 0
+        var h: int = img.get_height()
+        for yy in range(maxi(0, h - 14), h):
+            for xx in range(0, img.get_width(), 3):
+                var px: Color = img.get_pixel(xx, yy)
+                if px.a > 0.9:
+                    r += Vector3(px.r, px.g, px.b)
+                    n += 1
+        if n > 8:
+            col = Color(r.x / n, r.y / n, r.z / n)
+    _edge_cache[t] = col
+    return col
+
+
+# Alas bangunan melebur ke tanah: lingkaran lembut berlapis + kerikil/rumput kecil di tepi
+func _apron(ci: CanvasItem, cx: float, by: float, rx: float, col: Color, seed_v: int) -> void:
+    var ry: float = clampf(rx * 0.2, 6.0, 16.0)
+    for k in 5:
+        var f: float = 1.0 - 0.14 * float(k)
+        Art.ellipse(ci, Vector2(cx, by), rx * f, ry * f, Color(col.r, col.g, col.b, 0.13), 22)
+    var rr := RandomNumberGenerator.new()
+    rr.seed = seed_v
+    for i in int(rx / 5.0):
+        var px: float = cx + rr.randf_range(-rx, rx) * 0.95
+        var py: float = by + rr.randf_range(-ry, ry) * 0.9
+        var tone: float = rr.randf_range(0.7, 1.25)
+        var c2 := Color(clampf(col.r * tone, 0, 1), clampf(col.g * tone, 0, 1), clampf(col.b * tone, 0, 1), 0.85)
+        if rr.randf() < 0.5:
+            ci.draw_rect(Rect2(px, py, 2.0, 2.0), c2)
+        else:
+            ci.draw_rect(Rect2(px, py, 1.0, 3.0), c2)
+            ci.draw_rect(Rect2(px + 2.0, py + 1.0, 1.0, 2.0), c2)
+
+
 func _dtex(path: String) -> Texture2D:
     if not _deco_tex.has(path):
         _deco_tex[path] = load(path)
@@ -1536,7 +1585,10 @@ func _draw_structures(ci: CanvasItem, area: Rect2) -> void:
     for hs in houses:
         var hr := Rect2(float(int(hs["x"]) * TILE), float(int(hs["y"]) * TILE), float(int(hs["w"]) * TILE), float(int(hs["h"]) * TILE)).grow(56.0)
         if hr.intersects(area):
-            Art.ellipse(ci, Vector2(float(int(hs["x"]) * TILE) + float(int(hs["w"]) * TILE) * 0.5, float((int(hs["y"]) + int(hs["h"])) * TILE) - 2.0), float(int(hs["w"]) * TILE) * 0.52, 9.0, Color(0, 0, 0, 0.2), 20)
+            var hcx: float = float(int(hs["x"]) * TILE) + float(int(hs["w"]) * TILE) * 0.5
+            var hby: float = float((int(hs["y"]) + int(hs["h"])) * TILE) - 2.0
+            _apron(ci, hcx, hby, float(int(hs["w"]) * TILE) * 0.62, MAP_COL[int(hs.get("biome", 0))].darkened(0.45), int(hs["x"]) * 131 + int(hs["y"]))
+            Art.ellipse(ci, Vector2(hcx, hby), float(int(hs["w"]) * TILE) * 0.52, 9.0, Color(0, 0, 0, 0.2), 20)
             Art.draw_house(ci, int(hs["x"]) * TILE, int(hs["y"]) * TILE, hs["w"], hs["h"], hs["kind"], hs["variant"], int(hs.get("biome", 0)))
     for lr in LAIRS:
         var lc: Vector2 = cell_center(lr["cell"])
@@ -1570,6 +1622,7 @@ func _draw_castle(ci: CanvasItem, cs: Dictionary, area: Rect2) -> void:
     if not Rect2(pos - Vector2(0, 24), sz + Vector2(0, 24)).intersects(area):
         return
     if ct != null:
+        _apron(ci, pos.x + sz.x / 2.0, base_y - 6.0, sz.x * 0.56, _edge_col(ct, MAP_COL[cb].darkened(0.4)), int(cs["x"]) * 17 + int(cs["y"]))
         Art.ellipse(ci, Vector2(pos.x + sz.x / 2.0, base_y + 2.0), sz.x * 0.48, 12.0, Color(0, 0, 0, 0.26), 24)
         ci.draw_texture(ct, pos)
     else:
