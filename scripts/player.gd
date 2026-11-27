@@ -116,8 +116,11 @@ func _eq(slot: String) -> Dictionary:
 	return Items.info(id)
 
 
+var _set_b := {}
+
+
 func _eq_sum(key: String) -> float:
-	var s := 0.0
+	var s: float = float(_set_b.get(key, 0.0))
 	for slot in Items.SLOTS:
 		var d := _eq(slot)
 		if not d.is_empty():
@@ -181,6 +184,7 @@ func mp_regen() -> float:
 
 
 func recalc() -> void:
+	_set_b = Gear.set_bonus(Game.p["equip"])
 	var lv := level()
 	var ratio: float = float(hp) / float(max_hp) if max_hp > 0 else 1.0
 	max_hp = int(float(90 + stat("vit") * 10) * Bal.player_hp_scale(lv) * Jobs.mul("hp")) + int(_eq_sum("hp"))

@@ -59,6 +59,47 @@ const WEAPON := {
 
 var _sheets := {}
 
+# Bonus set: pakai 3 atau 5 bagian armor dari set yang sama (Rimba/Gurun/Es/Magma). Nilainya naik mengikuti stage rata-rata.
+const SET_BONUS := {
+	"forest": {"key": "hp", "b3": 60.0, "b5": 160.0, "label": "HP maks"},
+	"desert": {"key": "spd", "b3": 6.0, "b5": 14.0, "label": "kecepatan"},
+	"ice": {"key": "def", "b3": 10.0, "b5": 28.0, "label": "pertahanan"},
+	"volcano": {"key": "atk", "b3": 12.0, "b5": 34.0, "label": "serangan"},
+}
+
+
+func set_bonus_text(set_id: String) -> String:
+	if not SET_BONUS.has(set_id):
+		return ""
+	var sb: Dictionary = SET_BONUS[set_id]
+	return "Set %s: 3 bagian +%d %s, 5 bagian +%d." % [SET_NAME[set_id], int(sb["b3"]), String(sb["label"]), int(sb["b5"])]
+
+
+# Bonus set dari perlengkapan terpasang -> {"hp":.., "def":.., "atk":.., "spd":..} (kosong kalau tidak ada)
+func set_bonus(equip: Dictionary) -> Dictionary:
+	var cnt := {}
+	var stg := {}
+	for slot in A_SLOTS:
+		var id: String = String(equip.get(slot, ""))
+		if not id.begins_with("ga_"):
+			continue
+		var d: Dictionary = Items.info(id)
+		var sid: String = String(d.get("set", ""))
+		if sid == "":
+			continue
+		cnt[sid] = int(cnt.get(sid, 0)) + 1
+		stg[sid] = int(stg.get(sid, 0)) + int(d.get("stage", 0))
+	var out := {}
+	for sid in cnt.keys():
+		var n: int = int(cnt[sid])
+		if n < 3 or not SET_BONUS.has(sid):
+			continue
+		var sb: Dictionary = SET_BONUS[sid]
+		var sc: float = 1.0 + STAGE_STEP * float(stg[sid]) / float(n)
+		var v: float = float(sb["b5"] if n >= 5 else sb["b3"]) * sc
+		out[String(sb["key"])] = float(out.get(String(sb["key"]), 0.0)) + v
+	return out
+
 
 # ------------------------------------------------------------------ gambar
 func _sheet(s: String) -> Texture2D:
@@ -247,6 +288,7 @@ func _make_armor(id: String, set_id: String, slot: String, idx: int, r: int) -> 
 		desc += ", serangan +%d" % int(ex["atk"])
 	if float(ex["block"]) > 0.0:
 		desc += ", tangkis %d%%" % int(float(ex["block"]) * 100.0)
+	desc += "  " + set_bonus_text(set_id)
 	var nm := "%s %s %s%s" % [SLOT_NAME[slot], SET_NAME[set_id], ADJ[gi % ADJ.size()], (" +%d" % stage) if stage > 0 else ""]
 	var price: int = int(df * 6 * (1.0 + 0.35 * r))
 	return Items.make_entry(id, nm, "armor", RAR_COL[r], price, desc, ex)
