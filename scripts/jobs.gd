@@ -5,6 +5,7 @@ extends RefCounted
 const Secrets = preload("res://scripts/secrets.gd")
 const Plot = preload("res://scripts/plot.gd")
 const Prog = preload("res://scripts/progress.gd")
+const JS = preload("res://scripts/job_skills.gd")
 
 const BASE := ["knight", "mage", "archer", "swordsman", "priest", "shade", "tamer", "alchemist"]
 const ADVANCED := ["root_guard", "seal_weaver", "mist_shade", "wild_caller", "seed_brewer"]
@@ -129,6 +130,30 @@ static func skill() -> Dictionary:
     if j == "":
         return {}
     return DATA[j]["skill"]
+
+
+static var _s0 := {}
+
+
+# Skill ke-i (0-4) job aktif; kosong = tidak ada. Skill ke-0 = skill lama.
+static func skill_at(i: int) -> Dictionary:
+    var j := cur()
+    if j == "":
+        return {}
+    if i == 0:
+        if not _s0.has(j):
+            var d: Dictionary = (DATA[j]["skill"] as Dictionary).duplicate()
+            d["icon"] = String(JS.ICON1.get(j, "spin"))
+            _s0[j] = d
+        return _s0[j]
+    var ex: Array = JS.EXTRA.get(j, [])
+    if i - 1 < ex.size():
+        return ex[i - 1]
+    return {}
+
+
+static func unlock_lv(i: int) -> int:
+    return int(JS.UNLOCK[clampi(i, 0, 4)])
 
 
 static func start_stats(id: String) -> Dictionary:

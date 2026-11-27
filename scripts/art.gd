@@ -2178,6 +2178,108 @@ static func draw_currency(ci: CanvasItem, kind: String, c: Vector2, r: float) ->
 
 
 # Ikon tombol HUD: "sword" "magic" "hand" "bag" "gear" "potion_hp" "potion_mp"
+# Ikon skill di tombol HUD. icon: spin slash stab burst arrows arrow nova heal shield dash dagger drop snow leaf paw meteor star flame.
+static func _ip(ci: CanvasItem, c: Vector2, r: float, pts: Array, fill: Color, line: Color) -> void:
+	var arr := PackedVector2Array()
+	for p in pts:
+		arr.append(c + (p as Vector2) * r)
+	ci.draw_colored_polygon(arr, fill)
+	arr.append(arr[0])
+	ci.draw_polyline(arr, line, 1.5)
+
+
+static func draw_skill_icon(ci: CanvasItem, icon: String, c: Vector2, r: float, col: Color) -> void:
+	var lt: Color = col.lightened(0.45)
+	var fl: Color = col.lightened(0.15)
+	var ol := Color(0.05, 0.05, 0.1, 0.85)
+	var steel := Color(0.88, 0.92, 1.0)
+	match icon:
+		"stab":     # pedang menusuk ke atas + garis gerak
+			_ip(ci, c, r, [Vector2(0, -1.0), Vector2(0.2, -0.45), Vector2(0.2, 0.3), Vector2(-0.2, 0.3), Vector2(-0.2, -0.45)], steel, ol)
+			ci.draw_line(c + Vector2(0, -0.8) * r, c + Vector2(0, 0.2) * r, col, 1.5)
+			_ip(ci, c, r, [Vector2(-0.5, 0.3), Vector2(0.5, 0.3), Vector2(0.5, 0.45), Vector2(-0.5, 0.45)], fl, ol)
+			_ip(ci, c, r, [Vector2(-0.1, 0.45), Vector2(0.1, 0.45), Vector2(0.1, 0.85), Vector2(-0.1, 0.85)], col.darkened(0.3), ol)
+			for sx in [-0.62, 0.62]:
+				ci.draw_line(c + Vector2(sx, -0.5) * r, c + Vector2(sx, 0.05) * r, lt, 1.5)
+		"slash":    # tebasan melengkung
+			ci.draw_arc(c + Vector2(-0.15, 0.1) * r, r * 0.85, -2.5, -0.5, 16, ol, 7.0)
+			ci.draw_arc(c + Vector2(-0.15, 0.1) * r, r * 0.85, -2.5, -0.5, 16, lt, 4.5)
+			ci.draw_arc(c + Vector2(-0.15, 0.1) * r, r * 0.55, -2.3, -0.7, 12, col, 3.0)
+			ci.draw_circle(c + Vector2(0.65, -0.55) * r, r * 0.12, Color.WHITE)
+		"spin":
+			ci.draw_arc(c, r * 0.7, -0.6, TAU - 1.0, 24, ol, 6.0)
+			ci.draw_arc(c, r * 0.7, -0.6, TAU - 1.0, 24, lt, 3.5)
+			var tp: Vector2 = c + Vector2.from_angle(-0.6) * r * 0.7
+			ci.draw_colored_polygon(PackedVector2Array([tp + Vector2(-6, -5), tp + Vector2(6, 0), tp + Vector2(-3, 7)]), lt)
+		"burst", "star":
+			var pts: Array = []
+			var n: int = 8 if icon == "burst" else 5
+			for i in n * 2:
+				var a: float = -PI / 2.0 + TAU * float(i) / float(n * 2)
+				pts.append(Vector2.from_angle(a) * (1.0 if i % 2 == 0 else 0.45))
+			_ip(ci, c, r * 0.95, pts, fl, ol)
+			ci.draw_circle(c, r * 0.2, Color.WHITE)
+		"arrows", "arrow":
+			var offs: Array = [Vector2(0, 0)] if icon == "arrow" else [Vector2(-0.5, 0.0), Vector2(0, 0.15), Vector2(0.5, 0.0)]
+			for o in offs:
+				var o2: Vector2 = o as Vector2
+				ci.draw_line(c + (o2 + Vector2(-0.25, -0.9)) * r, c + (o2 + Vector2(0.1, 0.55)) * r, steel, 2.5)
+				ci.draw_colored_polygon(PackedVector2Array([c + (o2 + Vector2(0.1, 0.85)) * r, c + (o2 + Vector2(-0.12, 0.45)) * r, c + (o2 + Vector2(0.3, 0.45)) * r]), lt)
+				ci.draw_line(c + (o2 + Vector2(-0.25, -0.9)) * r, c + (o2 + Vector2(-0.4, -0.7)) * r, col, 2.0)
+		"nova":
+			ci.draw_arc(c, r * 0.5, 0.0, TAU, 20, lt, 3.0)
+			for i in 8:
+				var d: Vector2 = Vector2.from_angle(TAU * float(i) / 8.0)
+				ci.draw_line(c + d * r * 0.65, c + d * r * 0.98, fl, 3.0)
+			ci.draw_circle(c, r * 0.22, Color.WHITE)
+		"heal":
+			_ip(ci, c, r, [Vector2(-0.18, -0.85), Vector2(0.18, -0.85), Vector2(0.18, -0.18), Vector2(0.85, -0.18), Vector2(0.85, 0.18), Vector2(0.18, 0.18), Vector2(0.18, 0.85), Vector2(-0.18, 0.85), Vector2(-0.18, 0.18), Vector2(-0.85, 0.18), Vector2(-0.85, -0.18), Vector2(-0.18, -0.18)], fl, ol)
+		"shield":
+			_ip(ci, c, r, [Vector2(-0.8, -0.8), Vector2(0.8, -0.8), Vector2(0.8, 0.1), Vector2(0.0, 0.95), Vector2(-0.8, 0.1)], fl, ol)
+			ci.draw_line(c + Vector2(0, -0.6) * r, c + Vector2(0, 0.65) * r, lt, 2.0)
+			ci.draw_line(c + Vector2(-0.55, -0.15) * r, c + Vector2(0.55, -0.15) * r, lt, 2.0)
+		"dash":
+			for i in 3:
+				var x: float = -0.7 + float(i) * 0.5
+				ci.draw_polyline(PackedVector2Array([c + Vector2(x, -0.55) * r, c + Vector2(x + 0.4, 0.0) * r, c + Vector2(x, 0.55) * r]), lt if i == 2 else col, 3.5 if i == 2 else 2.5)
+		"dagger":
+			_ip(ci, c, r, [Vector2(0.75, -0.8), Vector2(0.2, -0.25), Vector2(-0.1, 0.05), Vector2(0.15, -0.55)], steel, ol)
+			ci.draw_line(c + Vector2(-0.15, 0.1) * r, c + Vector2(0.35, -0.4) * r, steel, 4.0)
+			ci.draw_line(c + Vector2(-0.45, -0.1) * r, c + Vector2(-0.05, 0.3) * r, fl, 3.5)
+			ci.draw_line(c + Vector2(-0.2, 0.2) * r, c + Vector2(-0.75, 0.75) * r, col.darkened(0.3), 4.0)
+			ci.draw_circle(c + Vector2(-0.8, 0.8) * r, r * 0.12, fl)
+		"drop":
+			_ip(ci, c, r, [Vector2(0, -0.95), Vector2(0.45, -0.2), Vector2(0.6, 0.3), Vector2(0.35, 0.75), Vector2(0, 0.9), Vector2(-0.35, 0.75), Vector2(-0.6, 0.3), Vector2(-0.45, -0.2)], fl, ol)
+			ci.draw_circle(c + Vector2(-0.2, 0.2) * r, r * 0.13, Color(1, 1, 1, 0.8))
+		"snow":
+			for i in 3:
+				var d: Vector2 = Vector2.from_angle(PI * float(i) / 3.0) * r * 0.95
+				ci.draw_line(c - d, c + d, lt, 2.5)
+				var e: Vector2 = d.orthogonal().normalized() * r * 0.18
+				ci.draw_line(c + d * 0.7 - e, c + d * 0.7 + e, fl, 2.0)
+				ci.draw_line(c - d * 0.7 - e, c - d * 0.7 + e, fl, 2.0)
+			ci.draw_circle(c, r * 0.14, Color.WHITE)
+		"leaf":
+			_ip(ci, c, r, [Vector2(-0.8, 0.8), Vector2(-0.6, 0.0), Vector2(-0.1, -0.6), Vector2(0.7, -0.85), Vector2(0.85, -0.2), Vector2(0.4, 0.45), Vector2(-0.2, 0.75)], fl, ol)
+			ci.draw_line(c + Vector2(-0.8, 0.8) * r, c + Vector2(0.55, -0.55) * r, col.darkened(0.4), 2.0)
+		"paw":
+			ci.draw_circle(c + Vector2(0, 0.3) * r, r * 0.42, fl)
+			for o in [Vector2(-0.6, -0.2), Vector2(-0.22, -0.62), Vector2(0.22, -0.62), Vector2(0.6, -0.2)]:
+				ci.draw_circle(c + (o as Vector2) * r, r * 0.2, lt)
+		"meteor":
+			for i in 3:
+				ci.draw_line(c + Vector2(-0.2 - float(i) * 0.18, -0.5 - float(i) * 0.12) * r, c + Vector2(-0.8, -0.9 + float(i) * 0.3) * r, col, 2.0)
+			ci.draw_circle(c + Vector2(0.2, 0.25) * r, r * 0.55, ol)
+			ci.draw_circle(c + Vector2(0.2, 0.25) * r, r * 0.45, fl)
+			ci.draw_circle(c + Vector2(0.05, 0.1) * r, r * 0.18, Color.WHITE)
+		"flame":
+			_ip(ci, c, r, [Vector2(0, -1.0), Vector2(0.3, -0.5), Vector2(0.65, -0.1), Vector2(0.6, 0.5), Vector2(0.2, 0.9), Vector2(-0.2, 0.9), Vector2(-0.6, 0.5), Vector2(-0.6, -0.05), Vector2(-0.25, -0.35)], fl, ol)
+			_ip(ci, c, r, [Vector2(0, -0.1), Vector2(0.3, 0.3), Vector2(0.15, 0.7), Vector2(-0.15, 0.7), Vector2(-0.3, 0.3)], Color(1, 0.95, 0.6), ol)
+		_:
+			ci.draw_circle(c, r * 0.6, fl)
+
+
+
 static func draw_hud_icon(ci: CanvasItem, kind: String, c: Vector2, r: float, sword: Dictionary = {}) -> void:
 	var u: float = r / 20.0
 	match kind:

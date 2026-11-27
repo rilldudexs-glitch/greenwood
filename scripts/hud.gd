@@ -319,6 +319,7 @@ class Overlay extends Control:
 class Btn extends Control:
     const A = preload("res://scripts/art.gd")
     const K = preload("res://scripts/ui_kit.gd")
+    const JobsS = preload("res://scripts/jobs.gd")
     signal pressed
     var kind := ""
     var action := ""
@@ -339,8 +340,17 @@ class Btn extends Control:
             _acc = 0.0
             queue_redraw()
 
+    func _slot() -> int:
+        if kind == "skill":
+            return 0
+        if kind.begins_with("skill"):
+            return int(kind.substr(5)) - 1
+        return -1
+
     func _input(event: InputEvent) -> void:
         if not is_visible_in_tree() or hud.busy():
+            return
+        if _slot() > 0 and JobsS.cur() == "":
             return
         if (kind == "pause" or kind == "gear") and not hud._touch:
             # di PC tombol jeda / gigi bisa diklik mouse
@@ -400,27 +410,40 @@ class Btn extends Control:
                 _circle(null, c, r, tint)
                 A.draw_hud_icon(self, "magic", c, r * 0.9)
             return
-        if kind == "dodge" or kind == "skill":
+        if kind == "dodge" or _slot() >= 0:
+            var sl: int = _slot()
+            if sl > 0 and JobsS.cur() == "":
+                return
             _circle(K.tex("hud_btn_round"), c, r, tint)
             var rem: float = 0.0
+            var locked := false
             if pl:
-                rem = pl.dodge_ratio() if kind == "dodge" else pl.skill_ratio()
+                if kind == "dodge":
+                    rem = pl.dodge_ratio()
+                else:
+                    rem = pl.skill_ratio(sl)
+                    locked = not pl.skill_unlocked(sl)
             var ic := Color(0.75, 0.92, 1.0) if kind == "dodge" else Color(1.0, 0.8, 0.4)
             if kind == "dodge":
                 for i in 3:
                     var x: float = -r * 0.35 + float(i) * r * 0.3
                     draw_polyline(PackedVector2Array([c + Vector2(x, -r * 0.3), c + Vector2(x + r * 0.22, 0), c + Vector2(x, r * 0.3)]), ic, 2.5)
             else:
-                draw_arc(c, r * 0.42, -0.6, TAU - 1.0, 24, ic, 3.0)
-                var tipp: Vector2 = c + Vector2.from_angle(-0.6) * r * 0.42
-                draw_colored_polygon(PackedVector2Array([tipp + Vector2(-5, -5), tipp + Vector2(5, 0), tipp + Vector2(-3, 6)]), ic)
+                var sk: Dictionary = JobsS.skill_at(sl)
+                var icn: String = String(sk.get("icon", "spin"))
+                A.draw_skill_icon(self, icn, c, r * 0.72, sk.get("col", ic))
+                if locked:
+                    draw_circle(c, r - 1.0, Color(0, 0, 0, 0.62))
+                    draw_string_outline(f, Vector2(0, c.y + 5.0), "Lv%d" % JobsS.unlock_lv(sl), HORIZONTAL_ALIGNMENT_CENTER, size.x, int(maxf(r * 0.5, 9.0)), 3, Color.BLACK)
+                    draw_string(f, Vector2(0, c.y + 5.0), "Lv%d" % JobsS.unlock_lv(sl), HORIZONTAL_ALIGNMENT_CENTER, size.x, int(maxf(r * 0.5, 9.0)), Color(1, 0.9, 0.6))
+                    return
             if rem > 0.0:
                 var pts := PackedVector2Array([c])
                 var a0: float = -PI / 2.0
                 for i in 21:
                     pts.append(c + Vector2.from_angle(a0 + TAU * rem * float(i) / 20.0) * (r - 2.0))
                 draw_colored_polygon(pts, Color(0, 0, 0, 0.55))
-            elif kind == "skill":
+            elif kind != "dodge":
                 draw_arc(c, r + 2.0, 0.0, TAU, 36, Color(1, 0.85, 0.3, 0.55 + 0.4 * sin(Time.get_ticks_msec() / 160.0)), 3.0)
             return
         _circle(K.tex("hud_btn_round"), c, r, tint)
@@ -484,6 +507,8 @@ func _build_buttons() -> void:
     _mk_btn("magic", "magic", 34.0 * k)
     _mk_btn("hand", "interact", 30.0 * k)
     _mk_btn("skill", "skill", 30.0 * k)
+    for si in range(2, 6):
+        _mk_btn("skill%d" % si, "skill%d" % si, 21.0 * k)
     _mk_btn("dodge", "dodge", 26.0 * k)
     _mk_btn("potion_hp", "potion_hp", 46.0)
     _mk_btn("potion_mp", "potion_mp", 46.0)
@@ -508,6 +533,10 @@ func _layout() -> void:
         "magic": Vector2(sz.x - 218, sz.y - 70),
         "hand": Vector2(sz.x - 84, sz.y - 232),
         "skill": Vector2(sz.x - 204, sz.y - 172),
+        "skill2": Vector2(sz.x - 272, sz.y - 168),
+        "skill3": Vector2(sz.x - 262, sz.y - 226),
+        "skill4": Vector2(sz.x - 214, sz.y - 262),
+        "skill5": Vector2(sz.x - 156, sz.y - 280),
         "dodge": Vector2(sz.x - 40, sz.y - 40),
         "potion_hp": Vector2(sz.x / 2.0 - 54.0, sz.y - 50.0),
         "potion_mp": Vector2(sz.x / 2.0 + 54.0, sz.y - 50.0),

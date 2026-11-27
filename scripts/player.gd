@@ -46,7 +46,7 @@ var _dodge_cd := 0.0
 var _dodge_dir := Vector2.DOWN
 var _pd_done := false
 var _slow_until := 0
-var _skill_cd := 0.0
+var _skill_cds := [0.0, 0.0, 0.0, 0.0, 0.0]
 var _pet = null
 var _spin_t := 0.0
 var _spin_hit2 := false
@@ -448,7 +448,8 @@ func _physics_process(delta: float) -> void:
 	_invuln = maxf(_invuln - delta, 0.0)
 	_dodge_t = maxf(_dodge_t - delta, 0.0)
 	_dodge_cd = maxf(_dodge_cd - delta, 0.0)
-	_skill_cd = maxf(_skill_cd - delta, 0.0)
+	for i in 5:
+		_skill_cds[i] = maxf(float(_skill_cds[i]) - delta, 0.0)
 	_flash = maxf(_flash - delta, 0.0)
 	_region_t -= delta
 	if _shake > 0.0:
@@ -517,7 +518,10 @@ func _handle_actions(delta: float) -> void:
 	if Input.is_action_just_pressed("dodge"):
 		_dodge()
 	if Input.is_action_just_pressed("skill"):
-		_skill()
+		_skill(0)
+	for si in range(1, 5):
+		if Input.is_action_just_pressed("skill%d" % (si + 1)):
+			_skill(si)
 	if _spin_t > 0.0:
 		_spin_t = maxf(_spin_t - delta, 0.0)
 		if not _spin_hit2 and _spin_t <= SPIN_TIME * 0.5:
@@ -943,15 +947,19 @@ func dodge_ratio() -> float:
 	return clampf(_dodge_cd / DODGE_CD, 0.0, 1.0)
 
 
-func skill_cd_max() -> float:
-	var sk: Dictionary = Jobs.skill()
+func skill_cd_max(i: int = 0) -> float:
+	var sk: Dictionary = Jobs.skill_at(i)
 	if not sk.is_empty():
 		return maxf(float(sk["cd"]) - stat("dex") * 0.05, 3.5) * Prog.skill_cd()
 	return maxf(8.0 - stat("dex") * 0.05, 4.5)
 
 
-func skill_ratio() -> float:
-	return clampf(_skill_cd / skill_cd_max(), 0.0, 1.0)
+func skill_ratio(i: int = 0) -> float:
+	return clampf(float(_skill_cds[i]) / skill_cd_max(i), 0.0, 1.0)
+
+
+func skill_unlocked(i: int) -> bool:
+	return level() >= Jobs.unlock_lv(i)
 
 
 # Guling cepat ke arah stik (atau arah hadap). Kebal selama guling; kena serangan pas guling = Perfect Dodge.
@@ -981,7 +989,8 @@ func _perfect_dodge() -> void:
 	_pd_done = true
 	Engine.time_scale = 0.45
 	_slow_until = Time.get_ticks_msec() + 450
-	_skill_cd = maxf(_skill_cd - skill_cd_max() * 0.4, 0.0)
+	for i in 5:
+		_skill_cds[i] = maxf(float(_skill_cds[i]) - skill_cd_max(i) * 0.4, 0.0)
 	_dodge_cd = minf(_dodge_cd, 0.2)
 	mp = minf(mp + 10.0, float(max_mp))
 	var main = get_tree().current_scene
@@ -991,16 +1000,23 @@ func _perfect_dodge() -> void:
 
 
 # Skill: Putaran Pedang. Menyapu semua musuh di sekitar dua kali, ikut efek elemen senjata.
-func _skill() -> void:
+func _skill(slot: int = 0) -> void:
 	if dead or _spin_t > 0.0 or _dodge_t > 0.0 or _fish != "":
 		return
-	if _skill_cd > 0.0:
+	if slot > 0 and not skill_unlocked(slot):
+		Audio.sfx("nope")
+		if hud:
+			hud.toast("Skill terbuka di level %d" % Jobs.unlock_lv(slot))
+		return
+	if float(_skill_cds[slot]) > 0.0:
 		Audio.sfx("nope")
 		return
-	_skill_cd = skill_cd_max()
-	var jsk: Dictionary = Jobs.skill()
+	var jsk: Dictionary = Jobs.skill_at(slot)
+	if slot > 0 and jsk.is_empty():
+		return
+	_skill_cds[slot] = skill_cd_max(slot)
 	if not jsk.is_empty():
-		_job_skill(jsk)
+		_job_skill(jsk, slot)
 		return
 	_spin_t = SPIN_TIME
 	_spin_hit2 = false
@@ -1054,7 +1070,7 @@ func _skill_strike(center: Vector2, r: float, sk: Dictionary, force_crit: bool =
 		main.fx_burst(e.global_position, col, 5, 50.0, 0.4, 0.0, 2.0, "star")
 
 
-func _job_skill(sk: Dictionary) -> void:
+func _job_skill(sk: Dictionary, slot: int = 0) -> void:
 	var main = get_tree().current_scene
 	if _pet != null and is_instance_valid(_pet):
 		_pet.rage(5.0)
@@ -1075,6 +1091,14 @@ func _job_skill(sk: Dictionary) -> void:
 			var steps := 4
 			for i in steps + 1:
 				_skill_strike(start.lerp(global_position, float(i) / float(steps)), 34.0, sk)
+		"line":
+			_skill_line(sk)
+		"buff":
+			if sk.has("mp"):
+				mp = minf(mp + float(max_mp) * float(sk["mp"]), float(max_mp))
+				fx_text_here("+MP", Color(0.5, 0.7, 1.0), 12.0)
+			main.fx_ring(global_position, 40.0, col, 0.5)
+			main.fx_burst(global_position, col, 14, 70.0, 0.6, -20.0, 2.5, "star")
 		"blink":
 			var best = null
 			var bd: float = float(sk["range"])
@@ -1086,7 +1110,7 @@ func _job_skill(sk: Dictionary) -> void:
 					bd = d
 					best = e
 			if best == null:
-				_skill_cd = 1.0                    # tidak ada target: cooldown singkat
+				_skill_cds[slot] = 1.0             # tidak ada target: cooldown singkat
 				main.fx_text(global_position + Vector2(0, -30), "Tak ada target", Color(1, 1, 1))
 				return
 			var away: Vector2 = (best.global_position - global_position).normalized()
@@ -1106,6 +1130,36 @@ func _job_skill(sk: Dictionary) -> void:
 				if String(sk.get("at", "self")) == "ahead":
 					c += _face * float(sk.get("dist", 70.0))
 				_skill_strike(c, float(sk["r"]), sk)
+
+
+# Tusukan lurus: menembus semua musuh di jalur sepanjang dist, lebar w (tiap musuh kena sekali)
+func _skill_line(sk: Dictionary) -> void:
+	var main = get_tree().current_scene
+	var col: Color = sk.get("col", Color.WHITE)
+	var dir: Vector2 = (_face if _face != Vector2.ZERO else Vector2.DOWN).normalized()
+	var dist: float = float(sk.get("dist", 140.0))
+	var w: float = float(sk.get("w", 30.0))
+	var n: int = int(dist / 18.0)
+	for i in n + 1:
+		var p: Vector2 = global_position + dir * (float(i) * dist / float(maxi(n, 1)))
+		main.fx_burst(p, col, 2, 25.0, 0.25, 0.0, 2.0, "dot")
+	main.fx_ring(global_position + dir * dist, 16.0, col, 0.3)
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		var rel: Vector2 = e.global_position - global_position
+		var along: float = rel.dot(dir)
+		if along < -e.radius or along > dist + e.radius:
+			continue
+		if absf(rel.dot(dir.orthogonal())) > w + e.radius:
+			continue
+		var crit: bool = bool(sk.get("crit", false)) or randf() < crit_chance()
+		var dmg: int = int(float(_skill_src_dmg(sk)) * float(sk.get("mult", 1.0)))
+		if crit:
+			dmg = int(dmg * 1.75)
+		e.take_damage(dmg, rel, crit)
+		_skill_status(e, sk, dmg)
+		main.fx_burst(e.global_position, col, 5, 50.0, 0.4, 0.0, 2.0, "star")
 
 
 func _skill_heal(frac: float) -> void:
