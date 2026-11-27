@@ -35,7 +35,7 @@ class Cell extends Control:
     var ghost := ""
 
     func _ready() -> void:
-        custom_minimum_size = Vector2(48, 48)
+        custom_minimum_size = Vector2(46, 46)
         mouse_filter = Control.MOUSE_FILTER_STOP
 
     func _gui_input(e: InputEvent) -> void:
@@ -52,10 +52,13 @@ class Cell extends Control:
             rr = int(inf_d.get("rarity", -1))
             if rr >= 0:
                 rar = inf_d["color"]
-        draw_rect(Rect2(Vector2.ZERO, size), Color(0.1, 0.06, 0.07, 0.95))
+        const AR = preload("res://scripts/aros.gd")
+        draw_style_box(AR.box("slot", 7, 7, 0, 0), Rect2(Vector2.ZERO, size))
         if rr >= 0:
-            draw_rect(Rect2(Vector2.ZERO, size), Color(rar.r, rar.g, rar.b, 0.14 + 0.03 * rr))
-        draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.9, 0.4) if selected else rar, false, 2.0 + (1.0 if rr >= 4 else 0.0))
+            draw_rect(Rect2(Vector2(5, 5), size - Vector2(10, 10)), Color(rar.r, rar.g, rar.b, 0.16 + 0.04 * rr))
+            draw_rect(Rect2(Vector2(5, 5), size - Vector2(10, 10)), Color(rar.r, rar.g, rar.b, 0.9), false, 1.0)
+        if selected:
+            draw_rect(Rect2(Vector2(1, 1), size - Vector2(2, 2)), Color(1, 0.9, 0.4), false, 2.0)
         if id == "" and ghost != "":
             var gt: Texture2D = preload("res://scripts/aros.gd").tex(ghost)
             var gs := size * 0.66
@@ -79,6 +82,7 @@ class Preview extends Control:
     var t := randf() * 5.0
     var gear := {}
     var glow := true
+    var moving := true
 
     func _process(d: float) -> void:
         t += d
@@ -91,7 +95,7 @@ class Preview extends Control:
             var rc: Color = Items.RAR_COL[int(sk["rarity"])]
             draw_circle(Vector2(size.x / 2.0, size.y * 0.55), size.x * 0.42, Color(rc.r, rc.g, rc.b, 0.16))
             draw_arc(Vector2(size.x / 2.0, size.y * 0.55), size.x * 0.42, 0.0, TAU, 32, Color(rc.r, rc.g, rc.b, 0.5), 2.0)
-        var o := {"skin": sk, "gender": gender, "dir": 0, "flip": false, "t": t, "phase": t * 5.0, "moving": true,
+        var o := {"skin": sk, "gender": gender, "dir": 0, "flip": false, "t": t, "phase": t * 5.0, "moving": moving,
             "scale": scl, "offset": Vector2(size.x / 2.0, size.y * 0.55)}
         for k in gear.keys():
             o[k] = gear[k]
@@ -296,39 +300,36 @@ func _is_equipped(id: String) -> bool:
     return Game.p["sword"] == id or Game.p["staff"] == id or Game.p["equip"].values().has(id)
 
 
+func _equip_cell(slot: String, id: String) -> Cell:
+    var c := Cell.new()
+    c.id = id
+    c.ghost = String(Aros.SLOT_ICON.get(slot, ""))
+    c.selected = id != "" and id == _sel
+    c.picked.connect(_select)
+    return c
+
+
 func _build_bag() -> void:
     var hb := HBoxContainer.new()
-    hb.add_theme_constant_override("separation", 12)
+    hb.add_theme_constant_override("separation", 8)
     _content.add_child(hb)
+    # kiri: inventori (kategori + grid 5 kolom)
     var left := VBoxContainer.new()
-    left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    left.custom_minimum_size = Vector2(242, 0)
     left.add_theme_constant_override("separation", 6)
     hb.add_child(left)
-    var er := HBoxContainer.new()
-    er.add_theme_constant_override("separation", 4)
-    left.add_child(er)
-    var slots := [["sword", Game.p["sword"]], ["staff", Game.p["staff"]]]
-    for s in Items.SLOTS:
-        slots.append([s, Game.p["equip"][s]])
-    for sl in slots:
-        var c := Cell.new()
-        c.id = String(sl[1])
-        c.ghost = String(Aros.SLOT_ICON.get(String(sl[0]), ""))
-        c.selected = c.id != "" and c.id == _sel
-        c.picked.connect(_select)
-        er.add_child(c)
     var cats := HBoxContainer.new()
-    cats.add_theme_constant_override("separation", 4)
+    cats.add_theme_constant_override("separation", 3)
     left.add_child(cats)
     for ct in [["all", "bag"], ["weapon", "sword"], ["armor", "shield"], ["use", "potion"], ["mat", "chest"]]:
         var cb := _btn("", _set_bag_cat.bind(String(ct[0])), _bag_cat == String(ct[0]), String(ct[1]))
-        cb.custom_minimum_size = Vector2(46, 30)
+        cb.custom_minimum_size = Vector2(44, 30)
         cb.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
         cats.add_child(cb)
     var grid := GridContainer.new()
-    grid.columns = 8
-    grid.add_theme_constant_override("h_separation", 4)
-    grid.add_theme_constant_override("v_separation", 4)
+    grid.columns = 5
+    grid.add_theme_constant_override("h_separation", 3)
+    grid.add_theme_constant_override("v_separation", 3)
     for id in _inv_ids(_bag_cat):
         var c2 := Cell.new()
         c2.id = id
@@ -339,8 +340,43 @@ func _build_bag() -> void:
         c2.picked.connect(_select)
         grid.add_child(c2)
     left.add_child(_scroll(grid))
+    # tengah: karakter (idle) diapit slot perlengkapan kiri-kanan, gaya saku Minecraft
+    var mid := VBoxContainer.new()
+    mid.custom_minimum_size = Vector2(200, 0)
+    mid.add_theme_constant_override("separation", 4)
+    hb.add_child(mid)
+    var er := HBoxContainer.new()
+    er.add_theme_constant_override("separation", 4)
+    mid.add_child(er)
+    var lcol := VBoxContainer.new()
+    lcol.add_theme_constant_override("separation", 4)
+    for sl in ["chest", "legs", "boots", "gloves"]:
+        lcol.add_child(_equip_cell(sl, String(Game.p["equip"][sl])))
+    er.add_child(lcol)
+    var pv := Preview.new()
+    pv.custom_minimum_size = Vector2(96, 190)
+    pv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    pv.skin_id = String(Game.p["skin"])
+    pv.gender = String(Game.p["gender"])
+    pv.gear = _gear_colors()
+    pv.moving = false
+    pv.glow = false
+    pv.scl = 3.4
+    er.add_child(pv)
+    var rcol := VBoxContainer.new()
+    rcol.add_theme_constant_override("separation", 4)
+    rcol.add_child(_equip_cell("sword", String(Game.p["sword"])))
+    rcol.add_child(_equip_cell("staff", String(Game.p["staff"])))
+    rcol.add_child(_equip_cell("shield", String(Game.p["equip"]["shield"])))
+    rcol.add_child(_equip_cell("pick", String(Game.p["equip"]["pick"])))
+    er.add_child(rcol)
+    var nm := _lbl("%s   Lv %d" % [String(Game.p["name"]), int(Game.p["level"])], 13, Color(1, 0.9, 0.55))
+    nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    mid.add_child(nm)
+    # kanan: keterangan item
     var right := VBoxContainer.new()
     right.custom_minimum_size = Vector2(230, 0)
+    right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     var rbox := VBoxContainer.new()
     right.add_child(_scroll(rbox))
     _build_detail(rbox)
