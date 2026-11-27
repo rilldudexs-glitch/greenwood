@@ -415,9 +415,17 @@ func net_kill() -> void:
 	_die()
 
 
+# Napas halus + denyut saat kena pukul (hanya skala visual, tanpa menyentuh logika)
+func _vis_anim() -> void:
+	var br: float = 1.0 + 0.022 * sin(_t * 3.1 + float(get_instance_id() % 9))
+	var pop: float = 1.0 + maxf(_flash - 0.03, 0.0) * 0.8
+	scale = Vector2(pop / br, pop * br)
+
+
 func _puppet_step(delta: float) -> void:
 	_t += delta
 	_flash = maxf(_flash - delta, 0.0)
+	_vis_anim()
 	_show_bar = maxf(_show_bar - delta, 0.0)
 	var d: Vector2 = _net_pos - global_position
 	velocity = d * 8.0
@@ -511,6 +519,7 @@ func _physics_process(delta: float) -> void:
 		_apply_gap()
 	_touch_cd = maxf(_touch_cd - delta, 0.0)
 	_flash = maxf(_flash - delta, 0.0)
+	_vis_anim()
 	_flee = maxf(_flee - delta, 0.0)
 	_show_bar = maxf(_show_bar - delta, 0.0)
 	_lunge = maxf(_lunge - delta, 0.0)

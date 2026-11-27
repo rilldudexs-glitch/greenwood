@@ -656,6 +656,130 @@ func _build_castle(site: Vector2i, cw: int, ch: int, vis_h: int, b: int, rng: Ra
 
 
 var _edge_cache := {}
+var _gcol_cache := {}
+var _tone: FastNoiseLite = null
+
+
+# Warna rata-rata seluruh tekstur tanah biome (untuk gradasi perbatasan & rumput)
+func _gcol(b: int) -> Color:
+    if _gcol_cache.has(b):
+        return _gcol_cache[b]
+    var col: Color = MAP_COL[b]
+    var t: Texture2D = textures[b]["ground"]
+    var img: Image = t.get_image() if t != null else null
+    if img != null and not img.is_empty():
+        if img.is_compressed():
+            img.decompress()
+        var r := Vector3.ZERO
+        var n := 0
+        for yy in range(0, img.get_height(), 2):
+            for xx in range(0, img.get_width(), 2):
+                var px: Color = img.get_pixel(xx, yy)
+                r += Vector3(px.r, px.g, px.b)
+                n += 1
+        if n > 0:
+            col = Color(r.x / n, r.y / n, r.z / n)
+    _gcol_cache[b] = col
+    return col
+
+
+# Perbatasan biome: gradasi lembut warna tanah tetangga masuk ke tile (bukan tambalan tile acak)
+func _biome_edge(ci: CanvasItem, pos: Vector2, nb: int, d: Vector2i, hv: int) -> void:
+    var col: Color = _gcol(nb)
+    var w: float = 9.0 + float(hv % 8)
+    var c0 := Color(col.r, col.g, col.b, 0.7)
+    var c1 := Color(col.r, col.g, col.b, 0.0)
+    var T: float = float(TILE)
+    var pts := PackedVector2Array()
+    var cols := PackedColorArray()
+    if d.x == 1:
+        pts = PackedVector2Array([Vector2(T - w, 0), Vector2(T, 0), Vector2(T, T), Vector2(T - w, T)])
+        cols = PackedColorArray([c1, c0, c0, c1])
+    elif d.x == -1:
+        pts = PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, T), Vector2(0, T)])
+        cols = PackedColorArray([c0, c1, c1, c0])
+    elif d.y == 1:
+        pts = PackedVector2Array([Vector2(0, T - w), Vector2(T, T - w), Vector2(T, T), Vector2(0, T)])
+        cols = PackedColorArray([c1, c1, c0, c0])
+    else:
+        pts = PackedVector2Array([Vector2(0, 0), Vector2(T, 0), Vector2(T, w), Vector2(0, w)])
+        cols = PackedColorArray([c0, c0, c1, c1])
+    for i in pts.size():
+        pts[i] += pos
+    ci.draw_polygon(pts, cols)
+
+
+# Variasi tanah tambahan di semua biome: kerikil, rumput/ilalang kecil, bercak tanah gelap
+func _decor_extra(ci: CanvasItem, b: int, pos: Vector2, x: int, y: int) -> void:
+    var hv: int = _h(x, y, 7)
+    var r: float = float(hv % 1000) / 1000.0
+    var g: Color = _gcol(b)
+    if r < 0.05:
+        var px: float = pos.x + float((hv / 7) % 24) + 3.0
+        var py: float = pos.y + float((hv / 31) % 22) + 6.0
+        var st: Color = g.lerp(Color(0.6, 0.6, 0.62), 0.55)
+        ci.draw_rect(Rect2(px, py, 3, 2), st.darkened(0.15))
+        ci.draw_rect(Rect2(px, py, 2, 1), st.lightened(0.25))
+        if hv % 3 == 0:
+            ci.draw_rect(Rect2(px + 4, py + 1, 2, 1), st.darkened(0.25))
+    elif r < 0.14:
+        var gx: float = pos.x + float((hv / 7) % 24) + 3.0
+        var gy: float = pos.y + float((hv / 31) % 18) + 12.0
+        for j in 4:
+            var lean: float = float(((hv >> j) & 3) - 1)
+            ci.draw_line(Vector2(gx + float(j) * 1.5, gy), Vector2(gx + float(j) * 1.5 + lean, gy - 4.0 - float(j % 2)), g.lightened(0.18 + 0.06 * float(j)), 1.0)
+    elif r < 0.17:
+        Art.ellipse(ci, Vector2(pos.x + float((hv / 7) % 20) + 6.0, pos.y + float((hv / 31) % 18) + 8.0), 6.0, 3.2, Color(g.r * 0.6, g.g * 0.55, g.b * 0.55, 0.22), 10)
+
+
+# Pinggir jalan: bayangan tipis + helai rumput menjulur ke jalan
+func _road_fringe(ci: CanvasItem, x: int, y: int, pos: Vector2, b: int, hv: int) -> void:
+    var gcol: Color = _gcol(b).lightened(0.12)
+    var T: float = float(TILE)
+    for d in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+        if _is_path(x + d.x, y + d.y):
+            continue
+        var n: int = 2 + (hv + d.x * 3 + d.y * 7) % 3
+        for j in n:
+            var t: float = (float(((hv >> (j * 3)) & 15)) + 1.0) / 17.0 * (T - 6.0) + 3.0
+            var bp: Vector2
+            var dir: Vector2
+            if d.y == -1:
+                bp = pos + Vector2(t, 1)
+                dir = Vector2(0.4, 1)
+            elif d.y == 1:
+                bp = pos + Vector2(t, T - 1)
+                dir = Vector2(-0.4, -1)
+            elif d.x == 1:
+                bp = pos + Vector2(T - 1, t)
+                dir = Vector2(-1, 0.4)
+            else:
+                bp = pos + Vector2(1, t)
+                dir = Vector2(1, -0.4)
+            ci.draw_line(bp, bp + dir * 3.0, gcol, 1.0)
+            ci.draw_line(bp + Vector2(1, 0), bp + Vector2(1, 0) + dir * 2.0, gcol.darkened(0.15), 1.0)
+
+
+# Pohon/semak: skala, cermin, dan warna sedikit berbeda per sel (tidak terlihat berulang)
+func _draw_obj_var(ci: CanvasItem, t: Texture2D, pos: Vector2, hv: int) -> void:
+    var sz: Vector2 = t.get_size()
+    var sc: float = 0.9 + float(hv % 21) / 100.0
+    var w: float = sz.x * sc
+    var h: float = sz.y * sc
+    var fl: float = -1.0 if (hv / 21) % 2 == 0 else 1.0
+    var v: float = 0.9 + float((hv / 7) % 17) / 100.0
+    var tint := Color(v * (1.0 + float((hv / 3) % 5 - 2) * 0.012), v, v * (1.0 - float((hv / 5) % 5 - 2) * 0.012))
+    var ox: float = float(TILE) / 2.0 - w / 2.0
+    ci.draw_texture_rect(t, Rect2(pos.x + ox + (w if fl < 0.0 else 0.0), pos.y + float(TILE) - h, w * fl, h), false, tint)
+
+
+func _tone_at(x: int, y: int) -> float:
+    if _tone == null:
+        _tone = FastNoiseLite.new()
+        _tone.seed = 4242
+        _tone.frequency = 0.035
+    return _tone.get_noise_2d(float(x), float(y))
+
 
 
 # Warna rata-rata tepi bawah sprite (untuk menyatukan alas bangunan dengan tanah)
@@ -1673,21 +1797,23 @@ func _draw_cell(ci: CanvasItem, x: int, y: int) -> void:
             var dl: Array = dirt_by_biome[b]
             ci.draw_texture(dl[hv % dl.size()], pos)
             _dirt_edges(ci, x, y, pos, b, hv)
+            _road_fringe(ci, x, y, pos, b, hv)
             return
         K.PLAZA:
             ci.draw_texture(plaza_tex, pos)
             return
     # tanah dasar + variasi warna + percampuran antar biome
-    var v: float = 0.93 + float(hv % 100) / 100.0 * 0.12
+    var tn: float = _tone_at(x, y)
+    var v: float = 0.93 + float(hv % 100) / 100.0 * 0.10 + tn * 0.07
     var gtex: Texture2D = tx["ground2"] if hv % 5 == 0 else tx["ground"]
-    ci.draw_texture(gtex, pos, Color(v, v, v))
+    ci.draw_texture(gtex, pos, Color(v * (1.0 + tn * 0.03), v, v * (1.0 - tn * 0.03)))
     for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
         var nx: int = x + d.x
         var ny: int = y + d.y
         if nx >= 0 and ny >= 0 and nx < W and ny < H:
             var nb: int = biome[idx(nx, ny)]
-            if nb != b and nb != 0 and b != 0 and (hv + d.x * 3 + d.y * 5) % 3 == 0:
-                ci.draw_texture(textures[nb]["ground"], pos, Color(1, 1, 1, 0.7))
+            if nb != b and nb != 0 and b != 0 and kind[idx(nx, ny)] != K.WATER:
+                _biome_edge(ci, pos, nb, d, hv)
     if k == K.CLIFF:
         _draw_cliff(ci, x, y, pos, b, hv)
         return
@@ -1696,15 +1822,16 @@ func _draw_cell(ci: CanvasItem, x: int, y: int) -> void:
     match k:
         K.GROUND, K.STUMP:
             _decor(ci, b, pos, hv)
+            _decor_extra(ci, b, pos, x, y)
             if k == K.STUMP:
                 Art.draw_stump(ci, pos + Vector2(16, 16))
         K.TREE:
             Art.ellipse(ci, pos + Vector2(16, 27), 13.0, 4.5, Color(0, 0, 0, 0.2), 12)
-            _draw_obj(ci, tx["tree"], pos)
+            _draw_obj_var(ci, tx["tree"], pos, hv)
         K.BUSH:
             _decor(ci, b, pos, hv)
             Art.ellipse(ci, pos + Vector2(16, 27), 10.0, 3.5, Color(0, 0, 0, 0.18), 10)
-            _draw_obj(ci, tx["bush"], pos)
+            _draw_obj_var(ci, tx["bush"], pos, hv)
         K.ROCK:
             Art.draw_rock(ci, pos + Vector2(16, 17), String(ore.get(i, "stone")), IDS[b], hv / 3)
         K.HOUSE:
@@ -1764,17 +1891,39 @@ func _draw_obj(ci: CanvasItem, t: Texture2D, pos: Vector2) -> void:
 
 
 func _shore(ci: CanvasItem, x: int, y: int, pos: Vector2, b: int) -> void:
-    var col := Color(1, 1, 1, 0.35)
+    var col := Color(1, 1, 1, 0.5)
     if b == 4:
-        col = Color(1.0, 0.8, 0.3, 0.5)
+        col = Color(1.0, 0.8, 0.3, 0.55)
+    var c0: Color = col
+    var c1 := Color(col.r, col.g, col.b, 0.0)
+    var dk := Color(0, 0, 0, 0.22)
+    var dk1 := Color(0, 0, 0, 0.0)
+    var T: float = float(TILE)
+    var hv: int = _h(x, y, 5)
+    var land := 0
     if get_kind(Vector2i(x, y - 1)) != K.WATER:
-        ci.draw_rect(Rect2(pos.x, pos.y, TILE, 3), col)
+        ci.draw_polygon(PackedVector2Array([pos, pos + Vector2(T, 0), pos + Vector2(T, 6), pos + Vector2(0, 6)]), PackedColorArray([c0, c0, c1, c1]))
+        land += 1
     if get_kind(Vector2i(x, y + 1)) != K.WATER:
-        ci.draw_rect(Rect2(pos.x, pos.y + TILE - 3, TILE, 3), Color(0, 0, 0, 0.18))
+        ci.draw_polygon(PackedVector2Array([pos + Vector2(0, T - 7), pos + Vector2(T, T - 7), pos + Vector2(T, T), pos + Vector2(0, T)]), PackedColorArray([dk1, dk1, dk, dk]))
+        land += 1
     if get_kind(Vector2i(x - 1, y)) != K.WATER:
-        ci.draw_rect(Rect2(pos.x, pos.y, 3, TILE), col)
+        ci.draw_polygon(PackedVector2Array([pos, pos + Vector2(6, 0), pos + Vector2(6, T), pos + Vector2(0, T)]), PackedColorArray([c0, c1, c1, c0]))
+        land += 1
     if get_kind(Vector2i(x + 1, y)) != K.WATER:
-        ci.draw_rect(Rect2(pos.x + TILE - 3, pos.y, 3, TILE), col)
+        ci.draw_polygon(PackedVector2Array([pos + Vector2(T - 6, 0), pos + Vector2(T, 0), pos + Vector2(T, T), pos + Vector2(T - 6, T)]), PackedColorArray([c1, c0, c0, c1]))
+        land += 1
+    if land == 0:
+        # air dalam: sedikit lebih gelap, plus daun teratai di perairan hijau
+        ci.draw_rect(Rect2(pos, Vector2(T, T)), Color(0, 0.05, 0.12, 0.12))
+        if hv % 23 == 0 and (b == 0 or b == 1 or b == 8 or b == 9 or b == 10 or b == 14):
+            var lc: Vector2 = pos + Vector2(float(8 + hv % 14), float(9 + (hv / 5) % 14))
+            Art.ellipse(ci, lc, 6.0, 4.0, Color(0.16, 0.45, 0.22), 12)
+            ci.draw_line(lc, lc + Vector2(6, -1), Color(0.05, 0.2, 0.1, 0.9), 1.0)
+            if hv % 2 == 0:
+                ci.draw_circle(lc + Vector2(-1, -1), 1.6, Color(1.0, 0.6, 0.75))
+        elif hv % 11 == 0:
+            ci.draw_line(pos + Vector2(6, 16), pos + Vector2(14, 16), Color(1, 1, 1, 0.16), 1.0)
 
 
 # Transisi tepi jalan: tanah dasar biome "merembes" ke pinggir tile jalan dengan bentuk bergerigi.
