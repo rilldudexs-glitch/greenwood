@@ -277,6 +277,12 @@ func collect(kind: String, amount: int) -> bool:
 
 func equip_item(id: String) -> void:
 	var d := Items.info(id)
+	var rq: int = int(d.get("req", 1))
+	if level() < rq:
+		Audio.sfx("nope")
+		if hud:
+			hud.toast("Butuh level %d untuk memakai %s" % [rq, String(d.get("name", id))])
+		return
 	match String(d["type"]):
 		"sword":
 			Game.p["sword"] = id

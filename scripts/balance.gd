@@ -146,6 +146,17 @@ const ZONES := [
 ]
 
 
+# Level terendah zona leveling di satu biome (dipakai sebagai syarat level gear tingkat tinggi).
+static func biome_min_lv(b: int) -> int:
+    var m := 0
+    for z in ZONES:
+        if int(z["biome"]) == b:
+            var lo: int = int(z["lv"][0])
+            if m == 0 or lo < m:
+                m = lo
+    return m
+
+
 static func zone_mob_level(zi: int, kind: String) -> int:
     var z: Dictionary = ZONES[zi]
     var lo: int = int(z["lv"][0])

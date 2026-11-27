@@ -554,7 +554,14 @@ func _zone_check() -> void:
 		_cur_zone = found
 		if found >= 0:
 			var z: Dictionary = Bal.ZONES[found]
-			hud.show_banner("Zona Leveling: %s  (Lv %d-%d)" % [z["name"], int(z["lv"][0]), int(z["lv"][1])], 3.0)
+			var lo: int = int(z["lv"][0])
+			var pl: int = int(Game.p.get("level", 1))
+			var tag := ""
+			if pl < int(float(lo) * 0.6):
+				tag = "\nSANGAT BERBAHAYA - musuh jauh di atas levelmu!"
+			elif pl < int(float(lo) * 0.85):
+				tag = "\nBerbahaya - levelmu masih kurang"
+			hud.show_banner("Zona Leveling: %s  (Lv %d-%d)%s" % [z["name"], lo, int(z["lv"][1]), tag], 3.5)
 	Story.visit(world.biome_at(pp))    # wilayah baru ditemukan (juga tujuan Kisah Utama)
 
 

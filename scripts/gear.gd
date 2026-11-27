@@ -8,6 +8,8 @@ extends Node
 # Beliung (pickaxe) masuk slot "pick" (alat tambang), bukan slot senjata.
 
 const DB = preload("res://scripts/gear_db.gd")
+const Bal = preload("res://scripts/balance.gd")
+const TIER_REQ := [1, 8, 20, 40, 65]   # syarat level gear biome awal menurut tier (0-4)
 const WEAPON_PNG := "res://assets/gear/weapons.png"
 const ARMOR_PNG := "res://assets/gear/armor.png"
 const CELL := 64
@@ -123,11 +125,29 @@ func rar_color(r: int) -> Color:
 
 func make_item(id: String) -> Dictionary:
 	var p := id.split("_")
+	var d := {}
 	if p.size() == 4 and p[0] == "gw":
-		return _make_weapon(id, p[1], int(p[2]), int(p[3]))
-	if p.size() == 5 and p[0] == "ga":
-		return _make_armor(id, p[1], p[2], int(p[3]), int(p[4]))
-	return {}
+		d = _make_weapon(id, p[1], int(p[2]), int(p[3]))
+	elif p.size() == 5 and p[0] == "ga":
+		d = _make_armor(id, p[1], p[2], int(p[3]), int(p[4]))
+	if d.is_empty():
+		return d
+	var rq: int = _req_level(d)
+	d["req"] = rq
+	if rq > 1:
+		d["desc"] = String(d["desc"]) + "  Butuh Lv %d." % rq
+	return d
+
+
+# Syarat level: gear biome awal menurut tier; gear biome 5+ menurut level zona terendah biome itu (sedikit di bawahnya).
+func _req_level(d: Dictionary) -> int:
+	var stage: int = int(d.get("stage", 0))
+	if stage > 0:
+		var lo: int = Bal.biome_min_lv(stage + 4)
+		if lo > 0:
+			return maxi(int(float(lo) * 0.9), 1)
+	var t: int = int(d.get("tier_idx", int(d.get("tier", 1)) - 1))
+	return int(TIER_REQ[clampi(t, 0, 4)])
 
 
 @warning_ignore("integer_division")
