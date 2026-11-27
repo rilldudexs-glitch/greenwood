@@ -19,6 +19,10 @@ const KEYS := [
     [21.5, Color(0.30, 0.34, 0.56)],
     [24.0, Color(0.30, 0.34, 0.56)],
 ]
+# tint halus per biome (dikalikan ke warna layar, berpindah mulus saat melintasi biome)
+const BIOME_TINT := [Color(1, 1, 1), Color(0.96, 1.0, 0.94), Color(1.0, 0.95, 0.86), Color(0.91, 0.97, 1.0), Color(1.0, 0.89, 0.85),
+    Color(0.9, 0.88, 1.0), Color(0.95, 0.95, 1.0), Color(0.88, 0.92, 1.0), Color(0.94, 1.0, 0.98), Color(1.0, 0.94, 0.97),
+    Color(0.96, 0.93, 1.0), Color(0.92, 0.94, 1.0), Color(0.95, 0.95, 0.9), Color(0.9, 1.0, 1.0), Color(0.95, 1.0, 0.92), Color(0.95, 0.95, 1.0)]
 const RAIN_B := [0, 1, 7, 8, 9, 10, 13, 14]
 const SAND_B := [2, 6, 12]
 const SNOW_B := [3, 11]
@@ -40,6 +44,8 @@ var _layer: CanvasLayer
 var _fx
 var _light: PointLight2D
 var _amb
+var _tint := Color(1, 1, 1)
+var _tint_to := Color(1, 1, 1)
 var blood_k := 0.0                   # 0..1, Bulan Darah (diatur world_events.gd): langit memerah
 
 
@@ -408,6 +414,8 @@ func _process(delta: float) -> void:
             inten = 0.0
             _fx.type = t
         _target = _target_for(t)
+        var bi: int = world.biome_at(player.global_position)
+        _tint_to = BIOME_TINT[bi] if bi >= 0 and bi < BIOME_TINT.size() else Color(1, 1, 1)
         var am: String = _amb_for(world.biome_at(player.global_position))
         if am != _amb.mode:
             _amb.mode = am
@@ -421,6 +429,8 @@ func _process(delta: float) -> void:
         c = c.lerp(c * Color(0.72, 0.78, 0.90), k)
     elif wtype == "sand":
         c = c.lerp(c * Color(1.0, 0.85, 0.65), k)
+    _tint = _tint.lerp(_tint_to, clampf(delta * 0.6, 0.0, 1.0))
+    c = c * _tint
     if blood_k > 0.0:
         c = c.lerp(c * Color(1.0, 0.40, 0.42), blood_k)       # Bulan Darah: layar memerah
     _mod.color = c

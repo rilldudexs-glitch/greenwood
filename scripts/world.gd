@@ -82,6 +82,7 @@ var trunk_pts: Array = []        # titik-titik jalan utama (untuk menyambung gub
 var safe_zones: Array = []       # Rect2i sel: area gubuk/perumahan (monster tidak muncul di sini)
 var castles: Array = []          # kastil/istana tiap biome: {x, y, w, h, vis_h, biome}
 var castle_props: Array = []     # dekorasi kastil berdiri (menara, patung, pohon...): {t, p, s}
+var light_points: Array = []     # titik api/lampu dekorasi kastil (untuk cahaya malam)
 var castle_decals: Array = []    # dekorasi kastil rata di tanah (alun-alun, ubin): {t, p, s}
 var _deco_tex := {}
 var castle_by_biome: Array = []  # per biome: sprite kastil (assets/castles/<biome>.png) atau null
@@ -555,6 +556,7 @@ func _place_castles(rng: RandomNumberGenerator) -> void:
     castles = []
     castle_props = []
     castle_decals = []
+    light_points = []
     for b in range(1, IDS.size()):
         if not has_biome(b):
             continue
@@ -686,6 +688,8 @@ func _put(path: String, cx: float, by: float, keep: Array, solid_frac: float = -
         kind[c] = K.HOUSE
     keep.append(fr)
     castle_props.append({"t": path, "p": Vector2(cx - sz.x / 2.0, by - sz.y), "s": sz, "by": by})
+    if path.contains("/lights_") or path.contains("/special_"):
+        light_points.append(Vector2(cx, by - sz.y * 0.72))
     return true
 
 
@@ -1532,6 +1536,7 @@ func _draw_structures(ci: CanvasItem, area: Rect2) -> void:
     for hs in houses:
         var hr := Rect2(float(int(hs["x"]) * TILE), float(int(hs["y"]) * TILE), float(int(hs["w"]) * TILE), float(int(hs["h"]) * TILE)).grow(56.0)
         if hr.intersects(area):
+            Art.ellipse(ci, Vector2(float(int(hs["x"]) * TILE) + float(int(hs["w"]) * TILE) * 0.5, float((int(hs["y"]) + int(hs["h"])) * TILE) - 2.0), float(int(hs["w"]) * TILE) * 0.52, 9.0, Color(0, 0, 0, 0.2), 20)
             Art.draw_house(ci, int(hs["x"]) * TILE, int(hs["y"]) * TILE, hs["w"], hs["h"], hs["kind"], hs["variant"], int(hs.get("biome", 0)))
     for lr in LAIRS:
         var lc: Vector2 = cell_center(lr["cell"])
@@ -1540,6 +1545,10 @@ func _draw_structures(ci: CanvasItem, area: Rect2) -> void:
     for d in castle_decals:
         if Rect2(d["p"], d["s"]).intersects(area):
             ci.draw_texture(_dtex(String(d["t"])), d["p"])
+    for d in castle_props:
+        var dsz: Vector2 = d["s"]
+        if Rect2(d["p"], dsz).intersects(area):
+            Art.ellipse(ci, Vector2(float(d["p"].x) + dsz.x / 2.0, float(d["by"]) - 2.0), dsz.x * 0.42, minf(8.0, dsz.x * 0.1 + 2.0), Color(0, 0, 0, 0.22), 14)
     for cs in castles:
         _draw_castle(ci, cs, area)
     for d in castle_props:
@@ -1561,6 +1570,7 @@ func _draw_castle(ci: CanvasItem, cs: Dictionary, area: Rect2) -> void:
     if not Rect2(pos - Vector2(0, 24), sz + Vector2(0, 24)).intersects(area):
         return
     if ct != null:
+        Art.ellipse(ci, Vector2(pos.x + sz.x / 2.0, base_y + 2.0), sz.x * 0.48, 12.0, Color(0, 0, 0, 0.26), 24)
         ci.draw_texture(ct, pos)
     else:
         var col: Color = MAP_COL[cb]
@@ -1636,9 +1646,11 @@ func _draw_cell(ci: CanvasItem, x: int, y: int) -> void:
             if k == K.STUMP:
                 Art.draw_stump(ci, pos + Vector2(16, 16))
         K.TREE:
+            Art.ellipse(ci, pos + Vector2(16, 27), 13.0, 4.5, Color(0, 0, 0, 0.2), 12)
             _draw_obj(ci, tx["tree"], pos)
         K.BUSH:
             _decor(ci, b, pos, hv)
+            Art.ellipse(ci, pos + Vector2(16, 27), 10.0, 3.5, Color(0, 0, 0, 0.18), 10)
             _draw_obj(ci, tx["bush"], pos)
         K.ROCK:
             Art.draw_rock(ci, pos + Vector2(16, 17), String(ore.get(i, "stone")), IDS[b], hv / 3)

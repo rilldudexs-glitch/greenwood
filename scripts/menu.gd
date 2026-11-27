@@ -148,6 +148,8 @@ func open(t: String, p: Dictionary = {}) -> void:
     params = p
     is_open = true
     visible = true
+    modulate = Color(1, 1, 1, 0)
+    create_tween().tween_property(self, "modulate:a", 1.0, 0.14)
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _sel = ""
     Audio.sfx("select")

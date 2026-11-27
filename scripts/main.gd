@@ -24,6 +24,7 @@ const CaveGateScript = preload("res://scripts/cave_gate.gd")
 const Lore = preload("res://scripts/lore.gd")
 const AtmosScript = preload("res://scripts/atmosphere.gd")
 const AmbientScript = preload("res://scripts/ambient.gd")
+const GlowScript = preload("res://scripts/glow.gd")
 const EventsScript = preload("res://scripts/world_events.gd")
 const JournalPageScript = preload("res://scripts/journal_page.gd")
 const Journal = preload("res://scripts/journal.gd")
@@ -130,6 +131,10 @@ func _ready() -> void:
 	amb.name = "Ambient"
 	add_child(amb)
 	amb.setup(self, player, world, atmos)
+	var glow = GlowScript.new()
+	glow.name = "Glow"
+	add_child(glow)
+	glow.setup(self, player, world, atmos)
 	events = EventsScript.new()
 	events.name = "WorldEvents"
 	add_child(events)
