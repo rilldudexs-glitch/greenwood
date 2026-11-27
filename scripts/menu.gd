@@ -3,6 +3,7 @@ extends Control
 # Skin (lemari + ganti gender), Toko (beli/jual), Setelan (suara), dan layar hasil Gacha.
 
 const Art = preload("res://scripts/art.gd")
+const Aros = preload("res://scripts/aros.gd")
 
 const GEAR_CHEST_PRICE := 150
 const FX_NAMES := {"none": "-", "crit": "Kritis +15%", "burn": "Membakar", "freeze": "Memperlambat", "shock": "Petir berantai", "poison": "Racun", "drain": "Sedot HP", "knock": "Hentakan +25%"}
@@ -20,6 +21,8 @@ var _craft_cat := "weapon"
 var _tabs: HBoxContainer
 var _content: Control
 var _title: Label
+var _money: HBoxContainer
+var _bag_cat := "all"
 
 
 # ------------------------------------------------------------------ kelas bantu
@@ -29,9 +32,10 @@ class Cell extends Control:
     var count := 0
     var selected := false
     var tag := ""
+    var ghost := ""
 
     func _ready() -> void:
-        custom_minimum_size = Vector2(50, 50)
+        custom_minimum_size = Vector2(48, 48)
         mouse_filter = Control.MOUSE_FILTER_STOP
 
     func _gui_input(e: InputEvent) -> void:
@@ -48,10 +52,14 @@ class Cell extends Control:
             rr = int(inf_d.get("rarity", -1))
             if rr >= 0:
                 rar = inf_d["color"]
-        draw_rect(Rect2(Vector2.ZERO, size), Color(0.1, 0.11, 0.18, 0.95))
+        draw_rect(Rect2(Vector2.ZERO, size), Color(0.1, 0.06, 0.07, 0.95))
         if rr >= 0:
             draw_rect(Rect2(Vector2.ZERO, size), Color(rar.r, rar.g, rar.b, 0.14 + 0.03 * rr))
         draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.9, 0.4) if selected else rar, false, 2.0 + (1.0 if rr >= 4 else 0.0))
+        if id == "" and ghost != "":
+            var gt: Texture2D = preload("res://scripts/aros.gd").tex(ghost)
+            var gs := size * 0.66
+            draw_texture_rect(gt, Rect2((size - gs) / 2.0, gs), false, Color(1, 1, 1, 0.28))
         if id != "":
             A.draw_icon(self, id, size / 2.0 + Vector2(0, -2), minf(size.x, size.y) * 0.8)
             if count > 1:
@@ -97,19 +105,14 @@ func _ready() -> void:
     visible = false
     mouse_filter = Control.MOUSE_FILTER_STOP
     var dim := ColorRect.new()
-    dim.color = Color(0, 0, 0, 0.6)
+    dim.color = Color(0, 0, 0, 0.55)
     dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(dim)
+    theme = Aros.make_theme()
     var pc := PanelContainer.new()
-    var sb := StyleBoxFlat.new()
-    sb.bg_color = Color(0.07, 0.08, 0.14, 0.97)
-    sb.border_color = Color(1, 0.9, 0.5, 0.8)
-    sb.set_border_width_all(2)
-    sb.set_corner_radius_all(10)
-    sb.set_content_margin_all(10)
-    pc.add_theme_stylebox_override("panel", sb)
+    pc.add_theme_stylebox_override("panel", Aros.box("frame", 30, 28, 24, 20))
     pc.set_anchors_preset(Control.PRESET_CENTER)
-    pc.custom_minimum_size = Vector2(900, 500)
+    pc.custom_minimum_size = Vector2(740, 420)
     pc.grow_horizontal = Control.GROW_DIRECTION_BOTH
     pc.grow_vertical = Control.GROW_DIRECTION_BOTH
     add_child(pc)
@@ -119,13 +122,18 @@ func _ready() -> void:
     vb.add_child(top)
     _title = Label.new()
     _title.add_theme_font_size_override("font_size", 18)
-    _title.add_theme_color_override("font_color", Color(1, 0.9, 0.5))
+    _title.add_theme_color_override("font_color", Color(1, 0.85, 0.55))
     top.add_child(_title)
+    _money = HBoxContainer.new()
+    _money.add_theme_constant_override("separation", 4)
+    top.add_child(_money)
     _tabs = HBoxContainer.new()
     _tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     _tabs.alignment = BoxContainer.ALIGNMENT_END
     top.add_child(_tabs)
-    vb.add_child(HSeparator.new())
+    var hs := HSeparator.new()
+    hs.add_theme_stylebox_override("separator", Aros.sep_style())
+    vb.add_child(hs)
     _content = MarginContainer.new()
     _content.size_flags_vertical = Control.SIZE_EXPAND_FILL
     vb.add_child(_content)
@@ -167,9 +175,12 @@ func _lbl(text: String, size: int = 14, col: Color = Color.WHITE) -> Label:
     return l
 
 
-func _btn(text: String, cb: Callable, disabled: bool = false) -> Button:
+func _btn(text: String, cb: Callable, disabled: bool = false, ic: String = "") -> Button:
     var b := Button.new()
     b.text = text
+    if ic != "":
+        b.icon = Aros.tex(ic)
+        b.expand_icon = true
     b.disabled = disabled
     b.pressed.connect(cb)
     return b
@@ -195,15 +206,24 @@ func _refresh() -> void:
     _clear(_content)
     if tab == "gacha":
         _title.text = "Hasil Gacha"
+        _money_row()
         _build_gacha()
         return
-    _title.text = "%s   |   Koin %d   Gem %d" % [TAB_NAMES[tab], int(Game.p["coins"]), int(Game.p["gems"])]
+    _title.text = TAB_NAMES[tab]
+    _money_row()
     var names: Array = ["bag", "stats", "craft", "skin", "settings"]
     if tab == "shop":
         names = ["shop"]
     for n in names:
-        _tabs.add_child(_btn(TAB_NAMES[n], _goto.bind(n), n == tab))
-    _tabs.add_child(_btn("Tutup", close))
+        var tb := _btn("", _goto.bind(n), n == tab, String(Aros.TAB_ICON[n]))
+        tb.tooltip_text = TAB_NAMES[n]
+        tb.custom_minimum_size = Vector2(44, 34)
+        tb.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+        _tabs.add_child(tb)
+    var xb := _btn("", close, false, "x")
+    xb.custom_minimum_size = Vector2(44, 34)
+    xb.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _tabs.add_child(xb)
     match tab:
         "bag":
             _build_bag()
@@ -219,6 +239,15 @@ func _refresh() -> void:
             _build_settings()
 
 
+func _money_row() -> void:
+    _clear(_money)
+    _money.add_child(Aros.icon("pouch", 22))
+    _money.add_child(_lbl(str(int(Game.p["coins"])), 15, Color(1, 0.9, 0.5)))
+    _money.add_child(Control.new())
+    _money.add_child(Aros.icon("ruby", 22))
+    _money.add_child(_lbl(str(int(Game.p["gems"])), 15, Color(1, 0.6, 0.65)))
+
+
 func _goto(t: String) -> void:
     tab = t
     _sel = ""
@@ -227,10 +256,22 @@ func _goto(t: String) -> void:
 
 
 # ------------------------------------------------------------------ TAS
-func _inv_ids() -> Array:
+const CAT_TYPES := {"weapon": ["sword", "staff"], "armor": ["armor"], "use": ["potion", "food", "fish"]}
+
+
+func _in_cat(id: String, cat: String) -> bool:
+    if cat == "all":
+        return true
+    var ty: String = String(Items.info(id)["type"])
+    if cat == "mat":
+        return not (CAT_TYPES["weapon"] + CAT_TYPES["armor"] + CAT_TYPES["use"]).has(ty)
+    return (CAT_TYPES[cat] as Array).has(ty)
+
+
+func _inv_ids(cat: String = "all") -> Array:
     var ids: Array = []
     for id in Game.p["inv"].keys():
-        if int(Game.p["inv"][id]) > 0:
+        if int(Game.p["inv"][id]) > 0 and _in_cat(String(id), cat):
             ids.append(String(id))
     ids.sort_custom(_cmp_items)
     return ids
@@ -261,9 +302,10 @@ func _build_bag() -> void:
     _content.add_child(hb)
     var left := VBoxContainer.new()
     left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    left.add_theme_constant_override("separation", 6)
     hb.add_child(left)
-    left.add_child(_lbl("Perlengkapan (ketuk untuk lihat)", 13, Color(0.8, 0.85, 1)))
     var er := HBoxContainer.new()
+    er.add_theme_constant_override("separation", 4)
     left.add_child(er)
     var slots := [["sword", Game.p["sword"]], ["staff", Game.p["staff"]]]
     for s in Items.SLOTS:
@@ -271,17 +313,23 @@ func _build_bag() -> void:
     for sl in slots:
         var c := Cell.new()
         c.id = String(sl[1])
+        c.ghost = String(Aros.SLOT_ICON.get(String(sl[0]), ""))
         c.selected = c.id != "" and c.id == _sel
         c.picked.connect(_select)
         er.add_child(c)
-    left.add_child(_lbl("Senjata • Tongkat • Zirah • Legging • Sepatu • Sarung • Perisai • Beliung", 10, Color(0.6, 0.65, 0.8)))
-    left.add_child(HSeparator.new())
-    left.add_child(_lbl("Isi tas", 13, Color(0.8, 0.85, 1)))
+    var cats := HBoxContainer.new()
+    cats.add_theme_constant_override("separation", 4)
+    left.add_child(cats)
+    for ct in [["all", "bag"], ["weapon", "sword"], ["armor", "shield"], ["use", "potion"], ["mat", "chest"]]:
+        var cb := _btn("", _set_bag_cat.bind(String(ct[0])), _bag_cat == String(ct[0]), String(ct[1]))
+        cb.custom_minimum_size = Vector2(46, 30)
+        cb.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+        cats.add_child(cb)
     var grid := GridContainer.new()
     grid.columns = 8
     grid.add_theme_constant_override("h_separation", 4)
     grid.add_theme_constant_override("v_separation", 4)
-    for id in _inv_ids():
+    for id in _inv_ids(_bag_cat):
         var c2 := Cell.new()
         c2.id = id
         c2.count = int(Game.p["inv"][id])
@@ -291,11 +339,18 @@ func _build_bag() -> void:
         c2.picked.connect(_select)
         grid.add_child(c2)
     left.add_child(_scroll(grid))
-    # detail
     var right := VBoxContainer.new()
-    right.custom_minimum_size = Vector2(270, 0)
+    right.custom_minimum_size = Vector2(230, 0)
+    var rbox := VBoxContainer.new()
+    right.add_child(_scroll(rbox))
+    _build_detail(rbox)
     hb.add_child(right)
-    _build_detail(right)
+
+
+func _set_bag_cat(c: String) -> void:
+    _bag_cat = c
+    Audio.sfx("select")
+    _refresh()
 
 
 func _select(id: String) -> void:
@@ -355,7 +410,14 @@ func _build_detail(box: VBoxContainer) -> void:
         box.add_child(_lbl("\nPotion/makanan bisa dipakai.\nSenjata & armor bisa dipasang.\nBahan dipakai di Crafting.", 12, Color(0.6, 0.65, 0.8)))
         return
     var d := Items.info(_sel)
-    box.add_child(_lbl(String(d["name"]), 18, d["color"]))
+    var hr := HBoxContainer.new()
+    hr.add_theme_constant_override("separation", 6)
+    hr.add_child(Aros.icon("ruby" if int(d.get("rarity", 0)) >= 3 else "diamond", 22))
+    var nl := _lbl(String(d["name"]), 17, d["color"])
+    nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    hr.add_child(nl)
+    box.add_child(hr)
     if d.has("rarity"):
         box.add_child(_lbl("Rarity: %s" % String(d["rname"]), 12, d["color"]))
     var tn := {"sword": "Senjata", "staff": "Tongkat", "armor": "Armor", "potion": "Ramuan", "food": "Makanan", "fish": "Ikan", "mat": "Bahan"}
@@ -373,19 +435,22 @@ func _build_detail(box: VBoxContainer) -> void:
         var l2 := _lbl(String(d["desc"]), 13, Color(0.7, 1, 0.8))
         l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
         box.add_child(l2)
-    box.add_child(_lbl("Nilai jual: %d koin" % int(d["price"]), 11, Color(1, 0.9, 0.5)))
+    var pr := HBoxContainer.new()
+    pr.add_child(Aros.icon("pouch", 18))
+    pr.add_child(_lbl(" Jual %d koin" % int(d["price"]), 12, Color(1, 0.9, 0.5)))
+    box.add_child(pr)
     var row := HBoxContainer.new()
     box.add_child(row)
     if Items.is_usable(_sel):
-        row.add_child(_btn("Pakai", _use_item.bind(_sel), player.count(_sel) <= 0))
+        row.add_child(_btn("Pakai", _use_item.bind(_sel), player.count(_sel) <= 0, "check"))
     elif Items.is_equipment(_sel):
         if _is_equipped(_sel):
             if String(d["type"]) == "armor":
-                row.add_child(_btn("Lepas", _unequip.bind(String(d["slot"]))))
+                row.add_child(_btn("Lepas", _unequip.bind(String(d["slot"])), false, "x"))
             else:
                 row.add_child(_lbl("Terpasang", 13, Color(0.5, 1, 0.5)))
         else:
-            row.add_child(_btn("Pasang", _equip.bind(_sel)))
+            row.add_child(_btn("Pasang", _equip.bind(_sel), false, "check"))
 
 
 func _use_item(id: String) -> void:
@@ -437,6 +502,7 @@ func _build_stats() -> void:
     for k in Game.STAT_KEYS:
         var row := HBoxContainer.new()
         mid.add_child(row)
+        row.add_child(Aros.icon(String(Aros.STAT_ICON[k]), 22))
         var nm := _lbl(Game.STAT_NAMES[k], 18, Color(1, 0.9, 0.6))
         nm.custom_minimum_size = Vector2(60, 0)
         row.add_child(nm)
