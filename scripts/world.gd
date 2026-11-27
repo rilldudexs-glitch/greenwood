@@ -7,6 +7,7 @@ extends Node2D
 const Art = preload("res://scripts/art.gd")
 const Chunk = preload("res://scripts/chunk.gd")
 
+const CastleDeco = preload("res://scripts/castle_deco.gd")
 const TILE := 32
 const W := 512
 const H := 256
@@ -80,6 +81,9 @@ var _trail_dirty := {}            # chunk yang tabrakannya perlu dibangun ulang 
 var trunk_pts: Array = []        # titik-titik jalan utama (untuk menyambung gubuk)
 var safe_zones: Array = []       # Rect2i sel: area gubuk/perumahan (monster tidak muncul di sini)
 var castles: Array = []          # kastil/istana tiap biome: {x, y, w, h, vis_h, biome}
+var castle_props: Array = []     # dekorasi kastil berdiri (menara, patung, pohon...): {t, p, s}
+var castle_decals: Array = []    # dekorasi kastil rata di tanah (alun-alun, ubin): {t, p, s}
+var _deco_tex := {}
 var castle_by_biome: Array = []  # per biome: sprite kastil (assets/castles/<biome>.png) atau null
 var _stream_t := 0.0
 var _stream_ck := Vector2i(-99, -99)
@@ -549,6 +553,8 @@ func _place_ridges() -> void:
 # lebar = lebar sprite (tile) - 1, tinggi tapak (padat) = 60% tinggi sprite, sisanya menjulang di atas.
 func _place_castles(rng: RandomNumberGenerator) -> void:
     castles = []
+    castle_props = []
+    castle_decals = []
     for b in range(1, IDS.size()):
         if not has_biome(b):
             continue
@@ -610,7 +616,7 @@ func _castle_fits(x: int, y: int, cw: int, ch: int, up: int, vis_h: int, b: int,
     for lr in LAIRS:
         if Vector2(c - Vector2i(lr["cell"])).length() < lair_gap:
             return false
-    var area := Rect2i(x - 4, y - up - 3, cw + 8, vis_h + 10)
+    var area := Rect2i(x - 12, y - up - 5, cw + 24, vis_h + 22)
     for sz in safe_zones:
         if area.intersects(sz):
             return false
@@ -640,10 +646,187 @@ func _build_castle(site: Vector2i, cw: int, ch: int, vis_h: int, b: int, rng: Ra
         _road(gx, yy)
         _road(gx + 1, yy)
     castles.append({"x": site.x, "y": site.y, "w": cw, "h": ch, "vis_h": vis_h, "biome": b})
-    safe_zones.append(Rect2i(site.x - 4, site.y - up - 3, cw + 8, vis_h + 10))
+    safe_zones.append(Rect2i(site.x - 12, site.y - up - 5, cw + 24, vis_h + 22))
     # jalan utama dari desa ke gerbang kastil (kastil di pusat biome = tujuan jalan utama)
     var start := Vector2i(gx, site.y + ch + 3)
     _wind_road(Vector2(CENTER), Vector2(start), 15.0, 300 + site.x * 5 + site.y, rng, true, 3)
+    _castle_deco(site, cw, ch, vis_h, b)
+
+
+func _dtex(path: String) -> Texture2D:
+    if not _deco_tex.has(path):
+        _deco_tex[path] = load(path)
+    return _deco_tex[path]
+
+
+# Pasang satu benda dekorasi berdiri: alasnya (footprint) harus tanah kosong & tidak menimpa benda lain.
+func _put(path: String, cx: float, by: float, keep: Array, solid_frac: float = -1.0, rows: int = 0) -> bool:
+    var t: Texture2D = _dtex(path)
+    if t == null:
+        return false
+    var sz: Vector2 = t.get_size()
+    var fw: float = minf(sz.x * 0.7, 64.0) if solid_frac < 0.0 else sz.x * solid_frac
+    var nrow: int = rows if rows > 0 else (1 if sz.y < 90.0 else 2)
+    var x0: int = int(floor((cx - fw / 2.0) / TILE))
+    var x1: int = int(floor((cx + fw / 2.0 - 1.0) / TILE))
+    var fy: int = int(floor((by - 2.0) / TILE))
+    var cells: Array = []
+    for yy in range(fy - nrow + 1, fy + 1):
+        for xx in range(x0, x1 + 1):
+            if not in_bounds(Vector2i(xx, yy)):
+                return false
+            if kind[idx(xx, yy)] != K.GROUND:
+                return false
+            cells.append(idx(xx, yy))
+    var fr := Rect2(float(x0 * TILE), float((fy - nrow + 1) * TILE), float((x1 - x0 + 1) * TILE), float(nrow * TILE))
+    for kr in keep:
+        if fr.intersects(kr):
+            return false
+    for c in cells:
+        kind[c] = K.HOUSE
+    keep.append(fr)
+    castle_props.append({"t": path, "p": Vector2(cx - sz.x / 2.0, by - sz.y), "s": sz, "by": by})
+    return true
+
+
+func _put_near(path: String, cx: float, by: float, keep: Array, solid_frac: float = -1.0, rows: int = 0) -> bool:
+    for off in [Vector2(0, 0), Vector2(16, 0), Vector2(-16, 0), Vector2(0, 16), Vector2(0, -16), Vector2(32, 0), Vector2(-32, 0), Vector2(24, 24), Vector2(-24, 24)]:
+        if _put(path, cx + off.x, by + off.y, keep, solid_frac, rows):
+            return true
+    return false
+
+
+func _decal(path: String, cx: float, top: float) -> void:
+    var t: Texture2D = _dtex(path)
+    if t == null:
+        return
+    var sz: Vector2 = t.get_size()
+    castle_decals.append({"t": path, "p": Vector2(cx - sz.x / 2.0, top), "s": sz})
+
+
+# Semua dekorasi dari atlas kastil dipasang di sekitar kastil: alun-alun & ubin di depan gerbang, patung,
+# lampu, panji, air mancur/kios di tepi, menara & tembok berjajar di sisi, balai samping, dan benda alam
+# (pohon, semak, batu, pagar...) tersebar di sekeliling. Semua deterministik dari posisi kastil.
+func _castle_deco(site: Vector2i, cw: int, ch: int, vis_h: int, b: int) -> void:
+    var id: String = IDS[b]
+    if not CastleDeco.DATA.has(id):
+        return
+    var D: Dictionary = CastleDeco.DATA[id]
+    var r := RandomNumberGenerator.new()
+    r.seed = site.x * 7919 + site.y * 104729 + b * 31
+    var up: int = vis_h - ch
+    # lahan sekeliling dibersihkan dari pohon/semak/batu/tebing (air tetap)
+    for yy in range(site.y - up - 4, site.y + ch + 15):
+        for xx in range(site.x - 12, site.x + cw + 13):
+            if not in_bounds(Vector2i(xx, yy)):
+                continue
+            var ci2 := idx(xx, yy)
+            var k0: int = kind[ci2]
+            if k0 == K.TREE or k0 == K.BUSH or k0 == K.ROCK or k0 == K.STUMP or k0 == K.CLIFF:
+                kind[ci2] = K.GROUND
+                ore.erase(ci2)
+            if hill.size() == W * H:
+                hill[ci2] = 0
+    var cxp: float = float((site.x + cw / 2) * TILE)
+    var y0: float = float((site.y + ch) * TILE)
+    var wpx: float = float(cw * TILE)
+    var vis_px: float = float(vis_h * TILE)
+    var keep: Array = [Rect2(cxp - wpx / 2.0 - 4.0, y0 - vis_px - 4.0, wpx + 8.0, vis_px + 8.0), Rect2(cxp - 40.0, y0, 80.0, 190.0)]
+    # alun-alun di depan gerbang
+    var plaza_h: float = 120.0
+    var plaza_w: float = 150.0
+    for pp in D["plaza"]:
+        var pt: Texture2D = _dtex(String(pp))
+        if pt != null:
+            plaza_w = pt.get_width()
+            plaza_h = pt.get_height()
+        _decal(String(pp), cxp, y0 - 2.0)
+    # ubin: berjajar di kedua sisi alun-alun
+    var tl: Array = D["tiles"]
+    for i in tl.size():
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        var row: int = i / 2
+        var tcx: float = cxp + side * (plaza_w / 2.0 + 16.0 + float(row % 2) * 22.0)
+        var ty: float = y0 + 6.0 + float(row) * 24.0
+        var tc := Vector2i(int(tcx) / TILE, int(ty + 12.0) / TILE)
+        if in_bounds(tc) and kind[idx(tc.x, tc.y)] == K.GROUND:
+            _decal(String(tl[i]), tcx, ty)
+    # perimeter: menara & tembok bergantian, memanjang ke kiri dan kanan di depan kastil
+    var peri: Array = []
+    var tw: Array = D["towers"]
+    var wl: Array = D["walls"]
+    for i in maxi(tw.size(), wl.size()):
+        if i < tw.size():
+            peri.append(tw[i])
+        if i < wl.size():
+            peri.append(wl[i])
+    var cur: Array = [wpx / 2.0 + 14.0, wpx / 2.0 + 14.0]
+    for i in peri.size():
+        var sd: int = i % 2
+        var pt2: Texture2D = _dtex(String(peri[i]))
+        if pt2 == null:
+            continue
+        var w2: float = pt2.get_width()
+        var sgn: float = -1.0 if sd == 0 else 1.0
+        if float(cur[sd]) + w2 > 11.5 * TILE:
+            sd = 1 - sd
+            sgn = -sgn
+        _put(String(peri[i]), cxp + sgn * (float(cur[sd]) + w2 / 2.0), y0 + 28.0, keep, 0.9, 1)
+        cur[sd] = float(cur[sd]) + w2 + 3.0
+    # patung berbaris di kedua sisi jalan
+    var st: Array = D["statues"]
+    for i in st.size():
+        var sg: float = -1.0 if i % 2 == 0 else 1.0
+        _put_near(String(st[i]), cxp + sg * 56.0, y0 + plaza_h + 26.0 + float(i / 2) * 54.0, keep)
+    # lampu, obor & brazier berpasangan
+    var lt: Array = D["lights"]
+    for i in lt.size():
+        var sg2: float = -1.0 if i % 2 == 0 else 1.0
+        _put_near(String(lt[i]), cxp + sg2 * 48.0, y0 + 50.0 + float(i / 2) * 46.0, keep)
+    # panji & bendera
+    var bn: Array = D["banners"]
+    for i in bn.size():
+        var sg3: float = -1.0 if i % 2 == 0 else 1.0
+        _put_near(String(bn[i]), cxp + sg3 * (plaza_w / 2.0 + 30.0 + float((i / 2) % 3) * 20.0), y0 + 96.0 + float(i / 6) * 40.0, keep)
+    # benda khusus (air mancur, kios, altar) di tepi alun-alun
+    var sp: Array = D["special"]
+    for i in sp.size():
+        var sg4: float = -1.0 if i % 2 == 0 else 1.0
+        _put_near(String(sp[i]), cxp + sg4 * (plaza_w / 2.0 + 70.0), y0 + 70.0 + float(i / 2) * 76.0, keep)
+    # balai samping di belakang perimeter, dan pemandangan besar di sisi lain
+    var mside: float = -1.0 if r.randf() < 0.5 else 1.0
+    for mp in D["manor"]:
+        var mt: Texture2D = _dtex(String(mp))
+        if mt != null:
+            _put_near(String(mp), cxp + mside * (wpx / 2.0 + mt.get_width() / 2.0 + 10.0), y0 - 6.0, keep, 0.9, 2)
+    for sc in D["scene"]:
+        var sct: Texture2D = _dtex(String(sc))
+        if sct != null:
+            _put_near(String(sc), cxp - mside * (wpx / 2.0 + sct.get_width() / 2.0 + 10.0), y0 - 8.0, keep, 0.8, 2)
+    # benda alam: tersebar di sekeliling (tiap benda dipasang sekali)
+    var pool: Array = (D["scatter"] as Array).duplicate()
+    for i in range(pool.size() - 1, 0, -1):
+        var j: int = r.randi_range(0, i)
+        var tmp = pool[i]
+        pool[i] = pool[j]
+        pool[j] = tmp
+    for pth in pool:
+        var tex: Texture2D = _dtex(String(pth))
+        if tex == null:
+            continue
+        for _try in 24:
+            var px2: float = cxp + r.randf_range(-11.0 * TILE, 11.0 * TILE)
+            var py2: float = y0 + r.randf_range(-vis_px * 0.7, 14.0 * TILE)
+            if tex.get_height() >= 60 and absf(px2 - cxp) < wpx * 0.6 and py2 < y0 + 40.0:
+                continue
+            if tex.get_height() < 22:
+                var dc := Vector2i(int(px2) / TILE, int(py2) / TILE)
+                if in_bounds(dc) and kind[idx(dc.x, dc.y)] == K.GROUND and absf(px2 - cxp) > 44.0:
+                    _decal(String(pth), px2, py2 - float(tex.get_height()))
+                    break
+            elif _put(String(pth), px2, py2, keep):
+                break
+    castle_props.sort_custom(func(a, c): return float(a["by"]) < float(c["by"]))
 
 
 func _castle_gate(i: int) -> Vector2:
@@ -1354,8 +1537,14 @@ func _draw_structures(ci: CanvasItem, area: Rect2) -> void:
         var lc: Vector2 = cell_center(lr["cell"])
         if Rect2(lc - Vector2(190, 190), Vector2(380, 380)).intersects(area):
             _draw_lair(ci, lc, int(lr["biome"]))
+    for d in castle_decals:
+        if Rect2(d["p"], d["s"]).intersects(area):
+            ci.draw_texture(_dtex(String(d["t"])), d["p"])
     for cs in castles:
         _draw_castle(ci, cs, area)
+    for d in castle_props:
+        if Rect2(d["p"], d["s"]).intersects(area):
+            ci.draw_texture(_dtex(String(d["t"])), d["p"])
 
 
 func _draw_castle(ci: CanvasItem, cs: Dictionary, area: Rect2) -> void:
