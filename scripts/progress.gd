@@ -5,8 +5,11 @@ extends RefCounted
 const Plot = preload("res://scripts/plot.gd")
 
 # ------------------------------------------------------------------ pohon skill
-# Poin skill = level / PTS_DIV (naik level 4x = 1 poin). Reset gratis kapan saja.
+# Poin skill: level 1-100 = 1 poin per 4 level (maks 25), setelah itu 1 poin per 20 level, supaya 60 poin (6 cabang x 10 rank) baru habis di level ~800.
+# Reset gratis kapan saja.
 const PTS_DIV := 4
+const PTS_SLOW_FROM := 100
+const PTS_SLOW_DIV := 20
 const MAX_RANK := 10
 
 # mul = pengali pasif per rank (ditambah ke 1.0); add = tambahan datar per rank.
@@ -41,7 +44,10 @@ static func spent() -> int:
 
 
 static func total_points() -> int:
-    return int(Game.p.get("level", 1)) / PTS_DIV
+    var lv: int = int(Game.p.get("level", 1))
+    if lv <= PTS_SLOW_FROM:
+        return lv / PTS_DIV
+    return PTS_SLOW_FROM / PTS_DIV + (lv - PTS_SLOW_FROM) / PTS_SLOW_DIV
 
 
 static func free_points() -> int:
