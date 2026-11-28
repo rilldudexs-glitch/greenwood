@@ -19,6 +19,9 @@ var menu
 var overlay
 var stick
 var buttons: Array = []
+const HB := 62.0          # ukuran kotak hotbar (ramuan di slot 1 & 2)
+const SC_SZ := 38.0       # ukuran kotak pintasan
+const SHORTCUTS := [["bag", "bag"], ["stats", "person"], ["quests", "scroll"], ["map", "map"], ["craft", "anvil"], ["skin", "crown"]]
 var minimap_tex: ImageTexture
 var panel_sb: StyleBoxTexture   # bingkai gelap (kit Greenwood) untuk panel quest & toast; null kalau file tidak ada
 var pause_list: Control
@@ -74,7 +77,7 @@ class Overlay extends Control:
     const SP := 0.6      # skala PNG aset terhadap sheet asli
     const KS := 0.48     # HUD, status, mata uang, dan minimap diperbesar untuk layar ponsel
     const MAP_HOLE := Rect2(22, 32, 255, 207)   # jendela peta di dalam bingkai (piksel sheet)
-    const SLOT := 46.0
+    const SLOT := 62.0
     var hud
     var t_status: Texture2D
     var t_fhp: Texture2D
@@ -312,7 +315,7 @@ class Overlay extends Control:
             else:
                 draw_rect(Rect2(slot_pos, Vector2(SLOT, SLOT)), Color(0.07, 0.06, 0.11, 0.8))
                 draw_rect(Rect2(slot_pos, Vector2(SLOT, SLOT)), K.CRIMSON, false, 2.0)
-            _tn(str(i + 1), slot_pos + Vector2(5, 13), 10, Color.WHITE)
+            _tn(str(i + 1), slot_pos + Vector2(6, 15), 11, Color.WHITE)
         # --- petunjuk tombol
         if not hud._touch:
             _t("WASD jalan   J serang   K sihir   E aksi   I tas   1/2 ramuan", Vector2(0, hy - 8.0), 11, Color(1, 1, 1, 0.65), sz.x, HORIZONTAL_ALIGNMENT_CENTER)
@@ -332,6 +335,7 @@ class Btn extends Control:
     var held := false
     var _finger := -1
     var pulse_text := ""
+    var icon := ""
 
     func _ready() -> void:
         mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -357,7 +361,7 @@ class Btn extends Control:
             return
         if _slot() > 0 and JobsS.cur() == "":
             return
-        if (kind == "pause" or kind == "gear") and not hud._touch:
+        if (kind == "pause" or kind == "gear" or kind == "portrait" or kind.begins_with("sc_")) and not hud._touch:
             # di PC tombol jeda / gigi bisa diklik mouse
             if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
                 if get_global_rect().has_point(event.position):
@@ -390,6 +394,13 @@ class Btn extends Control:
         var pl = hud.player
         var f: Font = ThemeDB.fallback_font
         var tint := Color(0.72, 0.72, 0.78) if held else Color.WHITE
+        if kind == "portrait":
+            return
+        if kind.begins_with("sc_"):
+            draw_texture_rect(Aros.tex("slot"), Rect2(Vector2.ZERO, size), false, tint)
+            var isz: float = size.x * 0.66
+            draw_texture_rect(Aros.tex(icon), Rect2(c - Vector2(isz, isz) / 2.0, Vector2(isz, isz)), false, tint)
+            return
         if kind == "pause" or kind == "gear":
             var tb: Texture2D = K.tex("hud_btn_" + kind)
             if tb != null:
@@ -520,8 +531,16 @@ func _build_buttons() -> void:
     for si in range(2, 6):
         _mk_btn("skill%d" % si, "skill%d" % si, 21.0 * k)
     _mk_btn("dodge", "dodge", 26.0 * k)
-    _mk_btn("potion_hp", "potion_hp", 46.0)
-    _mk_btn("potion_mp", "potion_mp", 46.0)
+    _mk_btn("potion_hp", "potion_hp", HB / 2.0)
+    _mk_btn("potion_mp", "potion_mp", HB / 2.0)
+    # potret kiri atas -> langsung ke Status
+    var por = _mk_btn("portrait", "", 44.0)
+    por.pressed.connect(open_menu.bind("stats"))
+    # kotak pintasan kecil di bawah minimap
+    for sc in SHORTCUTS:
+        var sb = _mk_btn("sc_" + String(sc[0]), "", SC_SZ / 2.0)
+        sb.icon = String(sc[1])
+        sb.pressed.connect(_pause_pick.bind(String(sc[0])))
     var pz = _mk_btn("pause", "", 25.5)
     pz.pressed.connect(open_pause_list)
     var gear = _mk_btn("gear", "", 25.5)
@@ -536,8 +555,8 @@ func _build_buttons() -> void:
 
 func _layout() -> void:
     var sz: Vector2 = get_viewport().get_visible_rect().size
-    var hx: float = sz.x / 2.0 - (5.0 * 46.0 + 8.0) / 2.0
-    var hy: float = sz.y - 46.0 - 8.0
+    var hx: float = sz.x / 2.0 - (5.0 * HB + 8.0) / 2.0
+    var hy: float = sz.y - HB - 8.0
     var pos := {
         "sword": Vector2(sz.x - 96, sz.y - 104),
         "magic": Vector2(sz.x - 218, sz.y - 70),
@@ -548,11 +567,18 @@ func _layout() -> void:
         "skill4": Vector2(sz.x - 214, sz.y - 262),
         "skill5": Vector2(sz.x - 156, sz.y - 280),
         "dodge": Vector2(sz.x - 40, sz.y - 40),
-        "potion_hp": Vector2(sz.x / 2.0 - 54.0, sz.y - 50.0),
-        "potion_mp": Vector2(sz.x / 2.0 + 54.0, sz.y - 50.0),
+        "potion_hp": Vector2(hx + HB / 2.0, hy + HB / 2.0),
+        "potion_mp": Vector2(hx + HB + 2.0 + HB / 2.0, hy + HB / 2.0),
+        "portrait": Vector2(67.0, 67.0),
         "pause": Vector2(sz.x - 6.0 - 25.5, 6.0 + 25.5),
         "gear": Vector2(sz.x - 6.0 - 25.5, 6.0 + 51.0 + 4.0 + 25.5),
     }
+    var mt: Texture2D = K.tex("hud_minimap")
+    var mh: float = (mt.get_size().y * 0.48 / 0.6) if mt != null else 140.0
+    var sx: float = sz.x - 6.0 - SC_SZ / 2.0
+    for sc in SHORTCUTS:
+        pos["sc_" + String(sc[0])] = Vector2(sx, 6.0 + mh + 36.0 + SC_SZ / 2.0)
+        sx -= SC_SZ + 4.0
     for b in buttons:
         var n: Control = b["node"]
         var c: Vector2 = pos[b["kind"]]
