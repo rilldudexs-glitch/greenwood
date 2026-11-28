@@ -13,7 +13,7 @@ const MOB_HP_CAP := 60000
 # Damage satuan monster (slime = 1x).
 const DMG_ANCHOR := [[1, 8.0], [10, 30.0], [25, 80.0], [40, 140.0], [60, 230.0], [100, 360.0], [150, 530.0], [200, 700.0], [250, 860.0], [300, 1030.0], [350, 1200.0], [400, 1360.0], [500, 1600.0], [600, 1850.0], [700, 2100.0], [800, 2350.0], [900, 2600.0], [1000, 2900.0], [1200, 3500.0]]
 # Perkiraan jumlah monster yang harus dikalahkan untuk naik 1 level (awal gampang, akhir sangat berat).
-const KILLS_ANCHOR := [[1, 6.0], [8, 9.0], [20, 25.0], [35, 70.0], [50, 90.0], [60, 100.0], [100, 100.0], [150, 120.0], [200, 140.0], [250, 165.0], [300, 195.0], [350, 225.0], [400, 225.0], [500, 260.0], [600, 300.0], [700, 340.0], [800, 380.0], [900, 420.0], [1000, 460.0], [1200, 550.0]]
+const KILLS_ANCHOR := [[1, 2.5], [8, 5.0], [15, 9.0], [20, 14.0], [25, 22.0], [35, 60.0], [50, 90.0], [60, 100.0], [100, 100.0], [150, 120.0], [200, 140.0], [250, 165.0], [300, 195.0], [350, 225.0], [400, 225.0], [500, 260.0], [600, 300.0], [700, 340.0], [800, 380.0], [900, 420.0], [1000, 460.0], [1200, 550.0]]
 const AVG_MOB_XP_FACTOR := 1.6
 
 # Level bos tiap wilayah (Ent, Kalajengking, Yeti, Naga) dan HP-nya.
@@ -228,7 +228,7 @@ static func mob_xp(lv: int, base_xp: int) -> int:
 # dist = jarak ke titik awal desa (px). Di hutan, makin jauh dari desa makin tinggi levelnya,
 # supaya pemula aman di sekitar desa dan naik pelan-pelan.
 # [jarak dari desa (px), level dasar]
-const VILLAGE_CURVE := [[0, 1], [700, 1], [1000, 2], [1300, 4], [1700, 8], [2100, 15], [2500, 28], [2900, 45], [3300, 70], [4000, 100]]
+const VILLAGE_CURVE := [[0, 1], [900, 1], [1300, 2], [1700, 3], [2100, 6], [2500, 12], [2900, 24], [3300, 42], [3700, 68], [4200, 100]]
 
 
 static func roll_mob_level(biome_idx: int, kind: String, dist: float = -1.0) -> int:
@@ -242,7 +242,7 @@ static func roll_mob_level(biome_idx: int, kind: String, dist: float = -1.0) -> 
         # kurva landai di dekat desa: Lv 1-3 di sekitar desa, baru naik cepat jauh di luar
         var base: float = interp(VILLAGE_CURVE, dist)
         var lvv: int = roundi(base * randf_range(0.8, 1.2))
-        return clampi(maxi(lvv, 1) + int(ELITE_BONUS.get(kind, 0)) * (1 if dist > 1800.0 else 0), 1, LV_MAX)
+        return clampi(maxi(lvv, 1) + int(ELITE_BONUS.get(kind, 0)) * (1 if dist > 2600.0 else 0), 1, LV_MAX)
     var lv: int = lo + roundi(float(hi - lo) * t) + int(ELITE_BONUS.get(kind, 0))
     return clampi(lv, 1, LV_MAX)
 
@@ -260,7 +260,8 @@ static func boss_xp(lv: int) -> int:
 # Pengali damage serangan pemain menurut level (ditambah dari senjata, STR, dan rarity gear)
 static func player_scale(lv: int) -> float:
     var l: float = float(lv - 1)
-    return 1.0 + 0.055 * l + 0.0003 * l * l
+    var early: float = 1.0 + 0.6 * maxf(0.0, 1.0 - l / 30.0)     # awal permainan terasa nendang, memudar sampai Lv 30
+    return (1.0 + 0.055 * l + 0.0003 * l * l) * early
 
 
 # Pengali HP / MP maksimum pemain menurut level
@@ -278,9 +279,10 @@ static func player_mp_scale(lv: int) -> float:
 # kebal (damage pemain turun) dan makin sakit (damage monster naik). Monster di bawah level pemain tidak berubah.
 const GAP_FREE := 1.15
 const GAP_DEALT_POW := 1.6       # makin besar = monster tinggi makin kebal
-const GAP_TAKEN_POW := 1.2       # makin besar = monster tinggi makin mematikan
+const GAP_TAKEN_POW := 0.6       # makin besar = monster tinggi makin mematikan
 const GAP_DEALT_MIN := 0.02      # damage pemain ke monster tak pernah di bawah 2%
-const GAP_TAKEN_MAX := 8.0       # damage monster ke pemain tak pernah lebih dari 8x
+const GAP_TAKEN_MAX := 2.0       # damage monster ke pemain tak pernah lebih dari 2x
+const HIT_CAP := 0.3             # satu pukulan monster (di atas level pemain) maksimal 30% HP maks pemain
 
 
 static func gap_ratio(mob_lv: int, pl_lv: int) -> float:

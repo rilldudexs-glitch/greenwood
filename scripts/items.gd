@@ -121,10 +121,10 @@ func _build_swords() -> void:
     var defs := [
         ["sw_wood", "Pedang Kayu", 6, 26.0, 1.0, "short", Color(0.7, 0.52, 0.3), "none", 1.0, {}, 0, "Pedang latihan."],
         ["sw_iron", "Pedang Besi", 11, 30.0, 1.05, "long", Color(0.82, 0.87, 0.94), "none", 1.0, {"iron": 5, "log": 2}, 30, "Seimbang & andal."],
-        ["sw_katana", "Katana Ronin", 15, 34.0, 1.1, "katana", Color(0.92, 0.95, 1.0), "crit", 0.85, {"iron": 6, "leather": 2, "log": 2}, 60, "Cepat. Peluang kritis +15%."],
+        ["sw_katana", "Katana Ronin", 15, 34.0, 1.1, "katana", Color(0.92, 0.95, 1.0), "crit", 0.85, {"iron": 6, "leather": 2, "log": 2}, 60, "Cepat. Peluang kritis +5%."],
         ["sw_venom", "Belati Berbisa", 12, 24.0, 0.9, "dagger", Color(0.5, 0.95, 0.35), "poison", 0.7, {"fang": 4, "venom": 3, "iron": 2}, 55, "Sangat cepat. Meracuni musuh."],
         ["sw_flame", "Pedang Api", 22, 36.0, 1.2, "flame", Color(1.0, 0.5, 0.15), "burn", 1.0, {"coal": 8, "obsidian": 3, "iron": 4}, 120, "Membakar musuh."],
-        ["sw_sun", "Scimitar Matahari", 19, 36.0, 1.15, "curved", Color(1.0, 0.85, 0.35), "crit", 0.95, {"amber": 6, "sunshard": 3, "gold": 4}, 100, "Kritis +15%, kilau emas."],
+        ["sw_sun", "Scimitar Matahari", 19, 36.0, 1.15, "curved", Color(1.0, 0.85, 0.35), "crit", 0.95, {"amber": 6, "sunshard": 3, "gold": 4}, 100, "Kritis +5%, kilau emas."],
         ["sw_frost", "Pedang Es", 26, 38.0, 1.2, "crystal", Color(0.6, 0.9, 1.0), "freeze", 1.0, {"shard": 6, "frost": 4, "crystal": 4}, 150, "Memperlambat musuh."],
         ["sw_thunder", "Pedang Petir", 30, 40.0, 1.25, "zigzag", Color(1.0, 0.95, 0.4), "shock", 1.0, {"gold": 6, "crystal": 3, "ruby": 2}, 220, "Petir menyambar musuh sekitar."],
         ["sw_claymore", "Claymore Raksasa", 40, 44.0, 1.4, "great", Color(0.75, 0.75, 0.82), "knock", 1.5, {"iron": 10, "obsidian": 4, "log": 4}, 240, "Lambat tapi menghantam keras."],

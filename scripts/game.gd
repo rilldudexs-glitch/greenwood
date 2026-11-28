@@ -15,8 +15,8 @@ const STAT_LONG := {
 	"str": "Kekuatan: serangan pedang +2 per poin",
 	"int": "Kecerdasan: sihir +2 & MP maks +10 per poin",
 	"vit": "Vitalitas: HP maks +10 & pertahanan +0.5 per poin",
-	"dex": "Kelincahan: serang lebih cepat, jalan lebih cepat, sedikit kritis",
-	"luk": "Keberuntungan: kritis +1%, drop lebih banyak, peluang gacha",
+	"dex": "Kelincahan: serang lebih cepat, jalan lebih cepat, kritis +0.05%",
+	"luk": "Keberuntungan: kritis +0.1%, drop lebih banyak, peluang gacha",
 }
 const POINTS_PER_LEVEL := 2
 const GACHA_COST := 60

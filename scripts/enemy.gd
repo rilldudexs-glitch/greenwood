@@ -1005,6 +1005,8 @@ func _apply_gap() -> void:
 	if player == null or not is_instance_valid(player):
 		return
 	dmg = maxi(int(float(_dmg_base) * Bal.taken_mult(level, player.level())), 1)
+	if float(level) > float(player.level()) * Bal.GAP_FREE:
+		dmg = mini(dmg, maxi(int(float(player.max_hp) * Bal.HIT_CAP), 1))     # anti sekali pukul mati
 
 
 func _hurt(amount: int, dir: Vector2, crit: bool) -> void:

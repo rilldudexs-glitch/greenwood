@@ -6,7 +6,7 @@ const Art = preload("res://scripts/art.gd")
 const Aros = preload("res://scripts/aros.gd")
 
 const GEAR_CHEST_PRICE := 150
-const FX_NAMES := {"none": "-", "crit": "Kritis +15%", "burn": "Membakar", "freeze": "Memperlambat", "shock": "Petir berantai", "poison": "Racun", "drain": "Sedot HP", "knock": "Hentakan +25%"}
+const FX_NAMES := {"none": "-", "crit": "Kritis +5%", "burn": "Membakar", "freeze": "Memperlambat", "shock": "Petir berantai", "poison": "Racun", "drain": "Sedot HP", "knock": "Hentakan +25%"}
 const SHOP_STOCK := ["potion_hp", "potion_mp", "potion_hp2", "potion_mp2", "grilled", "steak", "omelet"]
 const ORES := ["stone", "copper", "iron", "gold", "crystal", "ruby", "coal", "obsidian"]
 const TAB_NAMES := {"bag": "Tas", "stats": "Status", "craft": "Crafting", "skin": "Skin", "shop": "Toko", "settings": "Setelan"}
@@ -551,9 +551,9 @@ func _build_stats() -> void:
         var d := _lbl("  " + String(Game.STAT_LONG[k]), 11, Color(0.65, 0.7, 0.85))
         row.add_child(d)
     mid.add_child(HSeparator.new())
-    var info := "HP maks   %d\nMP maks   %d\nSerangan pedang   %d\nSerangan sihir   %d\nPertahanan   %.1f\nKecepatan gerak   %d\nJeda serang   %.2f dtk\nPeluang kritis   %d%%\nTangkis perisai   %d%%\nRegen MP   %.1f/dtk" % [
+    var info := "HP maks   %d\nMP maks   %d\nSerangan pedang   %d\nSerangan sihir   %d\nPertahanan   %.1f\nKecepatan gerak   %d\nJeda serang   %.2f dtk\nPeluang kritis   %.1f%%\nTangkis perisai   %d%%\nRegen MP   %.1f/dtk" % [
         player.max_hp, player.max_mp, player.melee_damage(), player.magic_damage(), player.defense(),
-        int(player.move_speed()), player.attack_cooldown(), int(player.crit_chance() * 100.0), int(player.block_chance() * 100.0), player.mp_regen()]
+        int(player.move_speed()), player.attack_cooldown(), player.crit_chance() * 100.0, int(player.block_chance() * 100.0), player.mp_regen()]
     mid.add_child(_lbl(info, 13, Color(0.85, 0.9, 1)))
 
 

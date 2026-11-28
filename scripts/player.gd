@@ -160,10 +160,11 @@ func attack_cooldown() -> float:
 
 
 func crit_chance() -> float:
-	var c: float = 0.03 + stat("luk") * 0.01 + stat("dex") * 0.003
+	# kritis sengaja langka: tiap poin LUK +0.1%, DEX +0.05%
+	var c: float = 0.01 + stat("luk") * 0.001 + stat("dex") * 0.0005
 	if String(sword().get("fx", "")) == "crit":
-		c += 0.15
-	return minf(c + Jobs.add("crit"), 0.85)
+		c += 0.05
+	return minf(c + Jobs.add("crit") * 0.4, 0.5)
 
 
 func melee_damage() -> int:
