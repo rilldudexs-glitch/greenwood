@@ -510,8 +510,10 @@ func _place_hills() -> void:
     nz.frequency = 0.04
     for y in range(6, H - 6):
         for x in range(6, W - 6):
-            if nz.get_noise_2d(x, y) > 0.34 and _relief_ok(x, y, 1):
-                hill[idx(x, y)] = 1
+            if nz.get_noise_2d(x, y) > 0.27 and _relief_ok(x, y, 2):
+                var ci: int = idx(x, y)
+                kind[ci] = K.CLIFF       # bukit sekarang padat (tidak bisa dinaiki)
+                ore.erase(ci)
 
 
 # Punggung tebing (menghalangi): tembok pendek 2 baris dengan celah, supaya peta terasa bertingkat tanpa menutup jalan.
@@ -520,7 +522,7 @@ func _place_ridges() -> void:
     rr.seed = sd + 77
     var placed := 0
     var tries := 0
-    while placed < 130 and tries < 4000:
+    while placed < 300 and tries < 9000:
         tries += 1
         var x0: int = rr.randi_range(8, W - 9)
         var y0: int = rr.randi_range(8, H - 9)
@@ -1869,10 +1871,17 @@ func _draw_cliff(ci: CanvasItem, x: int, y: int, pos: Vector2, b: int, hv: int) 
     var bot_open: bool = get_kind(Vector2i(x, y + 1)) != K.CLIFF
     var v: float = 0.9 + float(hv % 100) / 100.0 * 0.2
     var col: Color = base * Color(v, v, v, 1.0)
-    ci.draw_rect(Rect2(pos, Vector2(TILE, TILE)), col.darkened(0.15) if not top_open else col.lightened(0.12))
+    # permukaan dataran; hanya baris paling bawah yang jadi dinding tebing
+    ci.draw_rect(Rect2(pos, Vector2(TILE, TILE)), col.lightened(0.12) if not bot_open else col.darkened(0.15))
+    if not bot_open:
+        for j in 3:
+            var sx: float = pos.x + float((hv >> (j * 4)) % 24) + 3.0
+            var sy: float = pos.y + float((hv >> (j * 4 + 2)) % 24) + 3.0
+            ci.draw_rect(Rect2(sx, sy, 3, 2), col.lightened(0.22))
+            ci.draw_rect(Rect2(sx + 5, sy + 4, 2, 2), col.darkened(0.18))
     if top_open:
         ci.draw_rect(Rect2(pos.x, pos.y, TILE, 3), Color(1, 1, 0.92, 0.35))
-    else:
+    if bot_open:
         for j in 4:
             var cx: float = pos.x + float(j * 8) + float((hv >> j) % 5) + 2.0
             ci.draw_line(Vector2(cx, pos.y + 2), Vector2(cx, pos.y + TILE - 2), col.darkened(0.35), 2.0)
