@@ -317,7 +317,7 @@ func _tower_def() -> Dictionary:
     var b: Dictionary = t["boss"]
     var bl: int = clampi(tl + 5, 1, 1000)
     b["lv"] = bl
-    b["hp"] = int(Bal.interp(TOWER_HP, float(bl)) * (1.0 + 0.08 * float(fl - 1)))
+    b["hp"] = int(Bal.interp(TOWER_HP, float(bl)) * (1.0 + 0.08 * float(fl - 1)) * Bal.comp(bl))
     b["name"] = "Penjaga Lantai %d" % fl
     return t
 

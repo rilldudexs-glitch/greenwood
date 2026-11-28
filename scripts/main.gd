@@ -419,12 +419,12 @@ func spawn_mob(kind: String, biome_idx: int, pos: Vector2, lv: int = 0, mini_idx
 		e.is_mini = true
 		e.mini_name = String(d["name"])
 		e.mini_idx = mini_idx
-		e.mini_hp = int(d["hp"])
+		e.mini_hp = maxi(int(float(d["hp"]) * Bal.comp(int(d["lv"]))), 1)
 	if not mdef.is_empty():                  # bos dungeon: seperti mini boss (HP tetap) tapi tanpa respawn
 		e.is_mini = true
 		e.mini_name = String(mdef["name"])
 		e.mini_idx = -1
-		e.mini_hp = int(mdef["hp"])
+		e.mini_hp = maxi(int(float(mdef["hp"]) * Bal.comp(lv)), 1)
 	e.biome_idx = biome_idx
 	e.position = pos
 	entities.add_child(e)
@@ -616,7 +616,7 @@ func _spawn_boss(i: int) -> void:
 	b.boss_name = String(lr["name"])
 	b.biome_idx = int(lr["biome"])
 	b.level = blv
-	b.max_hp = int(Bal.BOSS_HP[i])
+	b.max_hp = int(float(Bal.BOSS_HP[i]) * Bal.comp(blv))
 	b.dmg = Bal.boss_dmg(blv)
 	b.speed = float(BOSS_SPD[i])
 	b.xp_reward = Bal.boss_xp(blv)
@@ -639,7 +639,7 @@ func _spawn_expansion_boss(i: int) -> void:
 	b.boss_name = String(data["name"])
 	b.biome_idx = int(data["biome"])
 	b.level = int(data["lv"])
-	b.max_hp = int(data["hp"])
+	b.max_hp = int(float(data["hp"]) * Bal.comp(int(data["lv"])))
 	b.dmg = int(float(Bal.boss_dmg(b.level)) * 0.25)
 	b.speed = 48.0
 	b.xp_reward = Bal.boss_xp(b.level)

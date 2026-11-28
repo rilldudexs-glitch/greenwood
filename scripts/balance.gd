@@ -213,7 +213,7 @@ static func quest_xp(lv: int) -> int:
 
 # ------------------------------------------------------------------ monster
 static func mob_hp(lv: int, base_hp: int) -> int:
-    return mini(int(interp(HP_ANCHOR, lv) * float(base_hp) / 30.0), MOB_HP_CAP)
+    return maxi(mini(int(interp(HP_ANCHOR, lv) * float(base_hp) / 30.0 * comp(lv)), MOB_HP_CAP), 1)
 
 
 static func mob_dmg(lv: int, base_dmg: int) -> int:
@@ -258,10 +258,19 @@ static func boss_xp(lv: int) -> int:
 
 # ------------------------------------------------------------------ pemain
 # Pengali damage serangan pemain menurut level (ditambah dari senjata, STR, dan rarity gear)
+const COMP_ANCHOR := [[1, 1.0], [40, 1.0], [100, 0.7], [200, 0.45], [400, 0.28], [700, 0.19], [1000, 0.14], [1200, 0.12]]
+
+
+# Pemampatan angka di level tinggi: damage pemain dan HP musuh/bos sama-sama dikali ini,
+# jadi lama bertarung tetap sama, tapi angka di layar tidak membengkak.
+static func comp(lv: int) -> float:
+    return interp(COMP_ANCHOR, float(lv))
+
+
 static func player_scale(lv: int) -> float:
     var l: float = float(lv - 1)
     var early: float = 1.0 + 0.6 * maxf(0.0, 1.0 - l / 30.0)     # awal permainan terasa nendang, memudar sampai Lv 30
-    return (1.0 + 0.055 * l + 0.0003 * l * l) * early
+    return (1.0 + 0.055 * l + 0.0003 * l * l) * early * comp(lv)
 
 
 # Pengali HP / MP maksimum pemain menurut level
